@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#280d2f"/><stop offset="1" stop-color="#03090d"/></linearGradient><radialGradient id="r" cx="70%" cy="25%" r="70%"><stop offset="0" stop-color="#ea2eb7" stop-opacity=".22"/><stop offset="1" stop-color="#ea2eb7" stop-opacity="0"/></radialGradient></defs>
+<rect width="360" height="480" fill="url(#g)"/><rect width="360" height="480" fill="url(#r)"/>
+<g stroke="#ea2eb7" stroke-opacity=".12" stroke-width="1"><path d="M0 0V480"/><path d="M36 0V480"/><path d="M72 0V480"/><path d="M108 0V480"/><path d="M144 0V480"/><path d="M180 0V480"/><path d="M216 0V480"/><path d="M252 0V480"/><path d="M288 0V480"/><path d="M324 0V480"/><path d="M360 0V480"/><path d="M0 0H360"/><path d="M0 36H360"/><path d="M0 72H360"/><path d="M0 108H360"/><path d="M0 144H360"/><path d="M0 180H360"/><path d="M0 216H360"/><path d="M0 252H360"/><path d="M0 288H360"/><path d="M0 324H360"/><path d="M0 360H360"/><path d="M0 396H360"/><path d="M0 432H360"/><path d="M0 468H360"/></g><circle cx="250" cy="100" r="62" fill="none" stroke="#ea2eb7" stroke-opacity=".65" stroke-width="1.3"/><circle cx="250" cy="100" r="45" fill="#ea2eb7" fill-opacity=".10"/><text x="250" y="122" text-anchor="middle" font-size="50" font-family="serif" fill="#ea2eb7" fill-opacity=".85">签</text>
+<path d="M90 420 C90 300 110 250 180 245 C250 250 270 300 270 420 Z" fill="#02070a" stroke="#ea2eb7" stroke-opacity=".35"/>
+<path d="M138 262 C138 205 155 185 180 185 C205 185 222 205 222 262 Z" fill="#02070a" stroke="#ea2eb7" stroke-opacity=".55"/>
+<circle cx="192" cy="225" r="4" fill="#ea2eb7"/><path d="M65 445H295" stroke="#ea2eb7" stroke-opacity=".6"/>
+<text x="28" y="42" fill="#ea2eb7" font-size="11" font-family="monospace" letter-spacing="2">WORLD 11</text>
+<text x="28" y="466" fill="#e0eeec" font-size="26" font-family="serif">雪签江湖</text>
+<text x="28" y="486" fill="#ea2eb7" font-size="11" font-family="serif">雪地武侠 · 炭银</text>
+</svg>
