@@ -2,44 +2,9 @@
 
 /* v6 app shell + screens. Replaces the old dark terminal UI. */
 
-/* ---------------- line field ---------------- */
-function lineField(canvas, seed){
-  if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  const dpr=Math.min(2,window.devicePixelRatio||1);
-  const W=canvas.clientWidth||320, H=canvas.clientHeight||64;
-  canvas.width=W*dpr; canvas.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-  const cols=Math.max(18,Math.floor(W/9)), rows=14;
-  const rnd=rng(seed||7319);
-  const grid=[];
-  for(let y=0;y<rows;y++){grid.push([]);for(let x=0;x<cols;x++)grid[y].push(rnd());}
-  const weights=[0.7,1.5,2.6,4.2];
-  ctx.clearRect(0,0,W,H);
-  const cw=W/cols, ch=H/rows;
-  for(let x=0;x<cols;x++){
-    for(let y=0;y<rows;y++){
-      const v=grid[y][x];
-      const qi=v<0.22?0:v<0.55?1:v<0.82?2:3;
-      ctx.strokeStyle = qi===3 ? '#202220' : qi===2 ? 'rgba(32,34,32,.72)' : qi===1 ? 'rgba(32,34,32,.38)' : 'rgba(32,34,32,.16)';
-      ctx.lineWidth=weights[qi];
-      ctx.lineCap='butt';
-      const px=x*cw+cw/2, py=y*ch+ch*0.16, ph=ch*0.68;
-      ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py+ph);ctx.stroke();
-    }
-  }
-  // occasional blue detection marks
-  const marks=2+Math.floor(rnd()*2);
-  for(let i=0;i<marks;i++){
-    const x=Math.floor(rnd()*cols)*cw+cw/2, y=Math.floor(rnd()*rows)*ch;
-    ctx.strokeStyle='#267dff'; ctx.lineWidth=1;
-    ctx.strokeRect(x-6,y+3,12,ch*0.8);
-  }
-}
-function paintFields(){
-  document.querySelectorAll('canvas[data-field]').forEach((c,i)=>{
-    lineField(c, 7319+ (state.worldIndex+1)*37 + i*11 + (state.days||0)%97);
-  });
-}
+/* ---------------- line field ----------------
+   Implemented in linefield6.js (60x30 quantized field, per-world sigil,
+   pointer spring, live detection boxes). paintFields() is defined there. */
 
 /* ---------------- shell ---------------- */
 function topBar(){
@@ -55,6 +20,7 @@ function topBar(){
 function render(keep){
   const y=keep?window.scrollY:0;
   const map={wake:wake6,intro:intro6,setup:setup6,play:play6};
+  stopFields();
   $('#app').innerHTML = topBar() + (map[state.screen]||wake6)();
   paintFields();
   if(keep)requestAnimationFrame(()=>window.scrollTo(0,y)); else window.scrollTo(0,0);
@@ -63,7 +29,7 @@ function render(keep){
 /* ---------------- wake ---------------- */
 function wake6(){
   return `<div class="view splash">
-    <canvas class="mark" data-field="1"></canvas>
+    <canvas class="mark" data-field="sigil" style="width:92px;height:72px"></canvas>
     <h1 class="display">这一世，<br><span>从出生开始。</span></h1>
     <p class="sub">你不是在选答案，是在过一生。<br>六十六个世界，每一段都不一样。</p>
     <button class="btn primary" style="max-width:260px" onclick="go('intro')">进入</button>
@@ -78,7 +44,7 @@ function intro6(){
     <div class="eyebrow">Soul archive / 01</div>
     <h1 class="title">你是谁，从哪来</h1>
     <p class="subtitle">姓名和性格会进入叙事。性别影响一些人的态度，也影响你能做的事。年龄固定从 0 岁开始——先有家人，再长大。</p>
-    <canvas data-field="1" style="height:48px;width:100%;margin:6px 0 14px"></canvas>
+    <canvas data-field="wide" style="height:78px;width:100%;margin:6px 0 16px"></canvas>
     <div class="stack">
       <div><label class="small muted">姓名</label><input id="name" value="${esc(state.name)}" placeholder="写一个名字"></div>
       <div class="grid2">
@@ -123,6 +89,7 @@ function confirmIntro6(){
 function setup6(){
   return `<div class="view">
     <div class="eyebrow">World / 02</div>
+    <canvas data-field="${state.worldIndex>=0?'sigil':'wide'}" style="height:${state.worldIndex>=0?'96px':'64px'};width:100%;margin:2px 0 14px"></canvas>
     <div class="tabs">${['世界','天赋','确认'].map((t,i)=>`<button class="tab ${setupStep===i?'active':''}" onclick="setupStep=${i};render()">${t}</button>`).join('')}</div>
     ${[worldPick6,talentPick6,confirmSetup6][setupStep]()}
   </div>`;
@@ -258,7 +225,7 @@ function scene6Page(){
   const s=state.scene;
   if(!s.english||!s.english.length)s.english=pickWords3(s);
   return `<div class="view" style="padding-top:16px">
-    <canvas data-field="1" style="height:46px;width:100%;margin-bottom:14px"></canvas>
+    <canvas data-field="wide" style="height:84px;width:100%;margin-bottom:16px"></canvas>
     <div class="scene-head">
       <div class="scene-meta">${esc(world().name)} · ${esc(s.location)} · ${s.days} 天</div>
       <h1 class="scene-title">${esc(s.title)}</h1>
@@ -280,7 +247,7 @@ function result6(){
     <div class="eyebrow">After this</div>
     <h1 class="scene-title" style="margin-bottom:6px">${esc(r.title)}</h1>
     <div class="small faint mono" style="margin-bottom:14px">你选了：${esc(r.choice)} · ${r.days} 天 · ${r.age} 岁</div>
-    <canvas data-field="1" style="height:40px;width:100%;margin-bottom:14px"></canvas>
+    <canvas data-field="wide" style="height:56px;width:100%;margin-bottom:14px"></canvas>
     <div class="prose">${esc(cleanText(r.outcome))}</div>
     ${r.gains.length?`<div class="gains">${r.gains.map(g=>`<span class="gain ${g.c}">${esc(g.k)} ${g.v>0?'+':''}${g.v}</span>`).join('')}</div>`:''}
     <div class="card" style="margin-top:18px"><div class="row"><h3 style="font:400 17px/1.4 var(--serif)">英文回顾</h3><button class="btn ghost" style="width:auto;padding:7px 11px" onclick="toggleRecap6()">${state.recapOpen?'收起':'展开'}</button></div>
@@ -336,7 +303,7 @@ function life6(){
   return `<div class="view">
     <div class="eyebrow">Ledger</div>
     <h1 class="title">营生</h1>
-    <canvas data-field="1" style="height:40px;width:100%;margin-bottom:12px"></canvas>
+    <canvas data-field="wide" style="height:52px;width:100%;margin-bottom:12px"></canvas>
     <div class="card"><dl class="kv">
       <dt>营生</dt><dd>${esc(occupationTitle())}</dd>
       <dt>月入</dt><dd>${wage?wage.toLocaleString()+' '+esc(L.currency):'—'}</dd>
@@ -479,7 +446,7 @@ function ending6(){
   return `<div class="view">
     <div class="eyebrow">The end</div>
     <h1 class="title">${age()} 岁，这一生结束</h1>
-    <canvas data-field="1" style="height:56px;width:100%;margin:10px 0 16px"></canvas>
+    <canvas data-field="wide" style="height:88px;width:100%;margin:10px 0 18px"></canvas>
     <p class="subtitle">${esc(state.name)} · ${esc(world().name)} · ${esc(title)}</p>
     <div class="card"><dl class="kv">
       <dt>活到</dt><dd>${age()} 岁</dd>

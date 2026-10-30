@@ -1,8 +1,8 @@
 /* Offline-first SW: network-first for code/HTML, cache-first for media */
-const CACHE = 'rebirth-v6-1';
+const CACHE = 'rebirth-v6-2';
 const ASSETS = [
   './index.html', './style.css',
-  './worlds.js', './depth.js', './depth2.js', './depth3.js', './scene6.js', './app6.js',
+  './worlds.js', './depth.js', './depth2.js', './depth3.js', './scene6.js', './linefield6.js', './app6.js',
   './game.js', './core5.js', './life5.js', './map5.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'
 ];
