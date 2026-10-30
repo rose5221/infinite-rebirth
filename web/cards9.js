@@ -171,8 +171,8 @@ function c9Actions() {
   // 读书
   add('study', L.study, 2, { hand: 0.4, coin: -280, heart: 4 }, '手 +0.55 · 心 +4', () => a >= 7 && a <= 15 && s9.coin >= 280);
   // 做活
-  add('help', L.help, 1, { grain: 3.5, body: -7 }, '粮 +3.5 · 身 -7', () => a >= 8);
-  add('earn', L.earn, 2, { coin: 380, body: -12 }, '钱 +380 · 身 -12', () => a >= 13);
+  add('help', L.help, 1, { grain: 3.5, body: -7 }, '粮 +3.5 · 身 -7', () => a >= 8 && a <= 66);
+  add('earn', L.earn, 2, { coin: 380, body: -12 }, '钱 +380 · 身 -12', () => a >= 13 && a <= 68);
   add('save', L.save, 1, { coin: 120 }, '钱 +120', () => a >= 16);
   // 学手艺
   add('learn', L.learn, 2, { hand: 0.35, coin: -160, body: -5 }, '手 +0.5', () => a >= 14 && a <= 32 && s9.coin >= 160);
@@ -186,6 +186,10 @@ function c9Actions() {
   add('child', L.child, 2, { child: true, heart: 8, body: -6 }, '家里多一口 · 心 +8', () => s9.married && !s9.hasChild && a <= 42);
   add('land', L.land, 3, { field: 1, coin: -900 }, '田 +1 亩', () => a >= 20 && s9.coin >= 900);
   add('teach', L.teach, 2, { body: -6, kidHand: 0.5, heart: 5 }, '孩子手 +1 · 心 +5', () => s9.hasChild && a >= 34 && kids.length > 0);
+  // 老年
+  add('sun', '在门口坐着', 1, { heart: 6 }, '心 +6', () => a >= 62);
+  add('watch_kid', '看孩子玩', 1, { heart: 7 }, '心 +7', () => a >= 55 && kids.length > 0);
+  add('tell', '把旧事讲一遍', 1, { heart: 5, kidRel: 6 }, '心 +5 · 关系 +6', () => a >= 58);
   // 歇
   add('rest', L.rest, 0, { body: 11, heart: 7 }, '身 +11 · 心 +7', () => true);
 
@@ -591,6 +595,19 @@ function c9Line(act, card) {
     land: [
       `你置了一亩地。田契拿在手里，比想的轻。`,
       `你又多了一亩。去看地那天，你在田埂上站了很久。`
+    ],
+    sun: [
+      `你在门口坐了一年。日头从东墙到西墙。有人路过就点点头。`,
+      `你每天在同一个时辰搬凳子出去，坐到看不清为止。`,
+      `这一年你什么也没做，就是坐着。风从巷子里过来，带着别人家的饭味。`
+    ],
+    watch_kid: [
+      `你看孩子们在巷子里跑。有一个摔了，你没动，他自己爬起来。`,
+      `你看了他们一整年。他们跑得比去年的快。`
+    ],
+    tell: [
+      `你把那些旧事讲了一遍。讲到一半，孩子问：后来呢。你说：没有后来了。`,
+      `你讲了一遍从前。孩子听得半懂。讲完你自己愣了一会儿。`
     ],
     teach: [
       `你教了${kid ? kid.name : '孩子'}一年。他学得比你当年快。`,
