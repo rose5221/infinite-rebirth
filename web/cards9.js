@@ -606,6 +606,9 @@ function c9Advance() {
   if (s9.body <= 1 || s9.family.find(p => p.id === 'self' && !p.alive)) {
     s9.dead = true; s9.why = '身子垮了';
   } else if (s9.age >= s9.deadline) {
+    if ((s9.renewals || []).length >= 4) {
+      s9.dead = true; s9.why = '活到头了'; s9.screen = 'end'; return;
+    }
     s9.screen = 'renew';
     s9.dead = false;
     return;
@@ -630,7 +633,10 @@ function c9Advance() {
     if (s9.age >= s9.deadline) break;
     skip++;
   }
-  if (s9.age >= s9.deadline && !s9.dead) s9.screen = 'renew';
+  if (s9.age >= s9.deadline && !s9.dead) {
+    if ((s9.renewals || []).length >= 4) { s9.dead = true; s9.why = '活到头了'; s9.screen = 'end'; }
+    else s9.screen = 'renew';
+  }
 }
 
 /* ---------- 续命 ---------- */
