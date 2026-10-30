@@ -1,9 +1,9 @@
 /* Offline-first SW: network-first for code/HTML, cache-first for media */
-const CACHE = 'rebirth-v6-5';
+const CACHE = 'rebirth-v7-1';
 const ASSETS = [
   './index.html', './style6.css',
-  './worlds.js', './depth.js', './depth2.js', './depth3.js', './choices6.js', './events6.js', './scene6.js', './ai6.js', './linefield6.js', './app6.js',
-  './game.js', './core5.js', './life5.js', './map5.js',
+  './worlds6.js', './story6.js', './linefield6.js',
+  './play7.js', './extra7.js', './ui7.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'
 ];
 self.addEventListener('install', e => {
