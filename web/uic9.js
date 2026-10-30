@@ -76,6 +76,12 @@ function c9NamePage() {
     <p class="subtitle">${c9Esc(b.subtitle)}</p>
     <canvas data-field="sigil" style="height:78px;width:100%;margin:8px 0 14px"></canvas>
     <div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一本记的是</h3><p class="small">${c9Esc(b.through)}</p></div>
+    ${(typeof e16LifeIndex==='function' && e16LifeIndex()>0) ? (()=>{const d=e16Load(); const last=d.lives[0]; return `<div class="card" style="border-color:var(--blue)">
+      <h3 style="font:400 17px/1.6 var(--serif)">这是第 ${e16LifeIndex()+1} 世</h3>
+      ${last?`<p class="small" style="margin:6px 0">上一世：${c9Esc(last.name)}，${last.age} 岁，${c9Esc(last.verdict)}</p>`:''}
+      ${d.habits&&d.habits.length?`<p class="small muted" style="margin:6px 0">有一件事会跟着你：${c9Esc(d.habits[0].text)}</p>`:''}
+      <p class="small faint">你大概不会想起来。但你会觉得眼熟。</p>
+    </div>`;})() : ''}
     ${typeof o11VarText === 'function' && o11VarText() ? `<div class="card" style="border-color:var(--blue)"><h3 style="font:400 17px/1.6 var(--serif)">这一局</h3>
       <p class="small" style="margin:6px 0">${c9Esc(o11VarText())}</p>
       <p class="small faint">每一局的家里都不一样。换一局，人会变，事也会变。</p></div>` : ''}
