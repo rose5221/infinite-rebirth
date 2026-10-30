@@ -112,7 +112,7 @@ const ARCH = {
   inform: c => ({ label: ph(c, 'inq', `先弄清楚${c.item}的来路`), hint: '打听 · 智识+', tone: 'ask', payload: { stats: { 智识: 1 }, tone: 'ask' } }),
   help: c => ({ label: `搭把手，别让${c.actor}一个人扛`, hint: '亲近+ · 自己受累', tone: 'help', payload: { bond: 5, health: -2, tone: 'warm' } }),
   carry: c => ({ label: `自己把这件事扛下来`, hint: '独自承担 · 身体吃亏', tone: 'carry', payload: { health: -4, reputation: 3, emotion: { 哀: 2 }, tone: 'carry' } }),
-  obey: c => ({ label: `照${c.actor}说的做`, hint: '稳 · 家人信任+', tone: 'obey', payload: { bond: 4, tone: 'obey' } }),
+  obey: c => ({ label: `${c.actor}说的，就照做`, hint: '稳 · 家人信任+', tone: 'obey', payload: { bond: 4, tone: 'obey' } }),
   sneak: c => ({ label: `背着${c.actor}自己试一次`, hint: '胆量 · 风险+', tone: 'sneak', payload: { emotion: { 惧: 3, 欲: 2 }, tone: 'rebel' } }),
   pay: c => ({ label: ph(c, 'pay', `先把${c.item}的账结了`), hint: '花钱 · 麻烦少一半', tone: 'pay', payload: { coins: -Math.min(c.money, 60), reputation: 2, tone: 'rule' } }),
   tell: c => ({ label: `跑去把大人叫来`, hint: '让能管的人来管', tone: 'tell', payload: { bond: 2, stats: { 机缘: 1 }, tone: 'ask' } }),
@@ -174,14 +174,16 @@ const AGE_GATE = {
   study: 6, inform: 7, help: 3, obey: 2, sneak: 4, askElder: 3, pray: 3, hide: 4, tell: 3
 };
 const KID_ONLY = ['obey','sneak','askElder','help','pray','hide','tell','keep'];
+const BABY_ONLY = ['obey','help','tell','pray','askElder'];
 const CHILD_ONLY = ['obey','sneak','askElder','help','pray','hide','tell','keep','inform','witness','study','repair'];
 function buildChoices(arc, ctx) {
   const a = ctx.age || 0;
   let pool = (ARC_POOLS[arc] || ARC_POOLS.life).filter(k => (AGE_GATE[k] || 0) <= a);
-  if (a < 7) pool = pool.filter(k => KID_ONLY.includes(k));
+  if (a < 4) pool = pool.filter(k => BABY_ONLY.includes(k));
+  else if (a < 7) pool = pool.filter(k => KID_ONLY.includes(k));
   else if (a < 13) pool = pool.filter(k => CHILD_ONLY.includes(k));
   if (pool.length < 4) {
-    const fallback = a < 7 ? KID_ONLY : a < 13 ? CHILD_ONLY : ['obey', 'inform', 'help', 'sneak', 'askElder', 'study', 'pray', 'hide'];
+    const fallback = a < 4 ? BABY_ONLY : a < 7 ? KID_ONLY : a < 13 ? CHILD_ONLY : ['obey', 'inform', 'help', 'sneak', 'askElder', 'study', 'pray', 'hide'];
     for (const k of fallback) if (!pool.includes(k)) pool.push(k);
   }
   const out = [];
@@ -205,11 +207,30 @@ function buildChoices(arc, ctx) {
   return out;
 }
 
+/* 四岁以前，玩家能做的只有婴儿能做的事：抓住、哭、看、睡。
+   这一段留下的不是“策略”，是记忆最初的样子。 */
+function babyChoices(s, ctx) {
+  const who = ctx.actor || '家里人';
+  const thing = ctx.item === '这件事' ? '手边的东西' : ctx.item;
+  let h = (hashText((s.title || '') + who + (thing || '')) + 7) >>> 0;
+  const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h >>>= 0; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+  const pool = [
+    { title: `抓住${who}的衣角不放`, desc: `手很小，抓得很紧，谁劝都不松。`, hint: '被记住 · 心里安稳', payload: { bond: 4, emotion: { 爱: 3 }, tone: 'obey' } },
+    { title: `哭到有人过来`, desc: '不知道想要什么，先哭。', hint: '有人来 · 众人都累', payload: { bond: 2, health: -1, tone: 'tell' } },
+    { title: `盯着${thing}看很久`, desc: '看不懂，但记住了它的样子。', hint: '记忆+ · 安静', payload: { stats: { 智识: 1 }, tone: 'ask' } },
+    { title: `自己爬过去摸一摸`, desc: '大人一转身，你已经到了那边。', hint: '胆量+ · 可能磕碰', payload: { emotion: { 惧: 2, 欲: 2 }, health: -1, tone: 'sneak' } },
+    { title: `睡着了，什么也没记住`, desc: '这一天在梦里过去了。', hint: '身体+ · 无记忆', payload: { health: 2, tone: 'obey' } },
+    { title: `伸手要${who}抱`, desc: '把手举起来，等人弯下腰。', hint: '亲近+', payload: { bond: 5, emotion: { 爱: 2 }, tone: 'help' } }
+  ];
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+  return pool.slice(0, 3);
+}
+
 /* rewrite a scene's options to fit its own content */
 function contextualizeChoices(s) {
   const ctx = deriveContext(s);
   const arc = s.arc || 'life';
-  const built = buildChoices(arc, ctx);
+  const built = (ctx.age || 0) < 4 ? babyChoices(s, ctx) : buildChoices(arc, ctx);
   if (built.length === 3) s.choices = built;
   s.ctx = { item: ctx.item, actor: ctx.actor, place: ctx.place };
   return s;

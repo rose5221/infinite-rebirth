@@ -79,7 +79,7 @@ function scene6(opts){
   const derived = opts.keepTitle ? null : titleOf(head, null);
   sc.title = derived || opts.title || '一个片段';
   const kidUnsafe = age() < 12 && sc.choices.some(c => ['profit','greed','gamble','expand','shop','marry','confess','seek'].includes(c.payload && c.payload.tone) || Math.abs((c.payload && c.payload.coins) || 0) > 40);
-  if ((!opts.keepChoices || kidUnsafe) && typeof contextualizeChoices === 'function') contextualizeChoices(sc);
+  if ((!opts.keepChoices || kidUnsafe || age() < 4) && typeof contextualizeChoices === 'function') contextualizeChoices(sc);
   return sc;
 }
 function C(title, desc, hint, payload){
@@ -442,13 +442,16 @@ function directorPick6(){
     const s=fn();
     if(s&&ok(s)){s.gen=name;return finishScene6(s);}
   }
-  return finishScene6(genWorkScene());
+  // 实在选不出来时的兜底，也要合年龄：孩子不该收到“账对不上”
+  const fallback = a<13 ? genEarlyChildhood : a<19 ? genTeenScene : a<51 ? genWorkScene : genAgingScene;
+  return finishScene6(fallback());
 }
 
 const TITLE_RULES = [
   [/对门|同行|快半步|抢先一步|当众把|落魄了/, '对门的人'],
   [/不该在那里的东西|叫出你的名字|那扇门|一行字|灯全灭了|不该下的雨/, '不该有的东西'],
-  [/借宿|敲门|门外站着|檐下/, '门外的人'],
+  [/黑潮|封路|封了|征用|躲进|赶紧走|街口了/, '封路'],
+  [/借宿|门外站着|檐下|只想借一个能坐/, '门外的人'],
   [/捡到|拾到|半袋|旧木匣|磨平的铜片/, '捡来的东西'],
   [/传言|闲话|背后说|变了三遍|解释不清/, '传言'],
   [/定钱|一批便宜的|验货|秤|缺斤少两/, '一笔买卖'],
@@ -471,7 +474,7 @@ const TITLE_RULES = [
   [/出远门|上路|搬走|驿站|赶路|动身|离开这里/, '出门'],
   [/官|役|封|禁|规矩|令|征/, '官面的事'],
   [/集市|铺|摊|客|货|买|卖/, '铺子里'],
-  [/母亲|父亲|手足|族里|祖|家里的大人|家里人/, '家里的人'],
+  [/母亲|父亲|手足|族里|祖|家里的大人/, '家里的人'],
   [/镜|记忆|梦|雾晶|档/, '记得的事'],
   [/雷|织|纸|甲|匠|坊|丝/, '手艺'],
 ];
