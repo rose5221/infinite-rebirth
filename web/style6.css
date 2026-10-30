@@ -162,8 +162,8 @@ textarea{min-height:96px;resize:vertical}
 .moods{display:flex;gap:5px;margin:12px 0 2px}
 .mood{flex:1;text-align:center}
 .mood .lb{font:9px/1.4 var(--serif);color:var(--ink-faint)}
-.mood .bar{height:26px;display:flex;align-items:flex-end;justify-content:center;margin-top:3px}
-.mood .bar i{display:block;width:2px;background:var(--ink);transition:height .3s}
+.mood .bar{height:24px;display:flex;align-items:flex-end;justify-content:center;margin-top:3px;background:none;border-bottom:1px solid var(--rule)}
+.mood .bar i{display:block;width:2px;background:var(--blue);transition:height .3s}
 .mood .v{font:9px/1.4 var(--mono);color:var(--ink-soft)}
 
 /* ---- chat (dialogue mode) ---- */
@@ -241,3 +241,11 @@ textarea{min-height:96px;resize:vertical}
   .view{padding:28px}
   .top{padding:18px 28px}
 }
+
+/* ---- v6.2 additions ---- */
+.scene-meta .src{color:var(--blue)}
+.loading{margin-top:22px;height:2px;background:var(--rule);overflow:hidden}
+.loading i{display:block;height:2px;width:38%;background:var(--ink);animation:ld 1.15s ease-in-out infinite}
+@keyframes ld{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+.card.ai{border-color:var(--blue)}
+@media(prefers-reduced-motion:reduce){.loading i{animation:none;width:100%}}

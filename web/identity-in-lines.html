@@ -134,9 +134,11 @@
     font:500 12px/1 var(--sans);letter-spacing:.02em;cursor:pointer;
     transition:background .2s ease,color .2s ease;
   }
-  .reveal:hover{background:currentColor}
-  .reveal:hover span{color:var(--paper)}
-  .surface.dark .reveal:hover{background:var(--ink)}
+  .reveal:hover{background:var(--hover-bg);border-color:var(--hover-bg);color:var(--hover-fg)}
+  .reveal:hover span{color:var(--hover-fg)}
+  .surface.apple{--hover-bg:#202220;--hover-fg:#fafaf8}
+  .surface.google{--hover-bg:#c2dcff;--hover-fg:#12245e}
+  .surface.tesla{--hover-bg:#ec353e;--hover-fg:#111212}
   .reveal:focus-visible{outline:2px solid var(--blue-detect);outline-offset:3px}
   .reveal span{transition:color .2s ease}
   .arrow{display:inline-block;transform:translateY(-.5px);font-family:var(--sans);font-size:14px;line-height:1}

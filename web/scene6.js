@@ -51,7 +51,7 @@ function stageMinDays(){
 }
 function scene6(opts){
   const L = worldLex();
-  return {
+  const sc = {
     id: opts.id || ('s6_'+Date.now()+'_'+Math.floor(Math.random()*9999)),
     mode: opts.mode || 'narration',
     arc: opts.arc || 'life',
@@ -69,8 +69,18 @@ function scene6(opts){
     flags: opts.flags || [],
     weight: opts.weight || 3,
     english: [],
-    recall: opts.recall || recallFor(opts.arc)
+    recall: opts.recall || recallFor(opts.arc),
+    keepChoices: !!opts.keepChoices
   };
+  const core = String(sc.opening || '').split(/。\s*/).filter(x => x && x.length > 3);
+  let head = (core[0] || '').slice(0, 90);
+  // 世界名、地名常带“水/漕/关/门”这类字，先剔掉再取题，免得每段都叫“水上”
+  for (const w of [L.name, sc.location, L.place].filter(Boolean)) head = head.split(w).join('　');
+  const derived = opts.keepTitle ? null : titleOf(head, null);
+  sc.title = derived || opts.title || '一个片段';
+  const kidUnsafe = age() < 12 && sc.choices.some(c => ['profit','greed','gamble','expand','shop','marry','confess','seek'].includes(c.payload && c.payload.tone) || Math.abs((c.payload && c.payload.coins) || 0) > 40);
+  if ((!opts.keepChoices || kidUnsafe) && typeof contextualizeChoices === 'function') contextualizeChoices(sc);
+  return sc;
 }
 function C(title, desc, hint, payload){
   return {title, desc, hint, payload: payload||{}};
@@ -82,15 +92,25 @@ function recallFor(arc){
 }
 
 /* ---------- generators: each writes fresh text from world + state ---------- */
+function worldFlavor(){
+  const L=worldLex(), r=Math.random;
+  if(r()<0.55)return '';
+  // 只取一小截日常细节，当背景，不塞百科条目
+  const bits=[L.daily,L.belief,L.tech].filter(Boolean);
+  if(!bits.length)return '';
+  let t=pick(r,bits).split(/[。；，]/)[0].replace(/[。]+$/,'').trim();
+  if(t.length>22)t=t.slice(0,22);
+  return t ? ' ' + t + '。' : '';
+}
 function genEarlyChildhood(){
   const L=worldLex(), r=Math.random;
   const baby = age()<4;
   const rel = L.family[0];
-  const famMap={'父':'父亲','母':'母亲','手足':'手足'};
+  const famMap={'父':'父亲','母':'母亲','手足':'手足','家人':'家人'};
   const who = rel? (famMap[rel.family]||rel.family) : '家里人';
   const subj = rel? rel.name : '家里的大人';
   const templates = baby? [
-    ()=>`你还不太会说话。${subj}抱着你在${L.place}走了一圈，指着${pick(r,L.goods)||'远处的屋顶'}说了个词，你没听懂，只记住了那个音。`,
+    ()=>`你还不太会说话。${subj}抱着你在${L.place}走了一圈，指着${pick(r,[].concat(L.goods,['远处的屋顶','檐下的灯','一截旧绳']))||'远处的屋顶'}说了个词，你没听懂，只记住了那个音。`,
     ()=>`这一年家里过得紧。${who}把你放在${pick(r,L.places)}的边上，自己去忙。你哭了一会儿，后来自己睡着了。`,
     ()=>`你第一次发热。${subj}整夜没睡，用凉布擦你的额头。天快亮时你退了烧，${subj}才敢闭眼。`,
     ()=>`${L.riskLine||L.risks[0]||'外面出了点事'}。家里人把你藏进里屋，压低声音说话。你什么都不知道，只觉得那天特别长。`
@@ -101,6 +121,7 @@ function genEarlyChildhood(){
     ()=>`${L.name}的${L.season}来得很早。家里按老规矩做了一件事，${L.belief||'没人说得清为什么'}。你被要求在旁边站着，不许问。`
   ];
   const text=pick(r,templates)();
+  const flavor = worldFlavor();
   return scene6({
     mode: age()<4?'montage':'narration',
     arc:'child',
@@ -131,7 +152,7 @@ function genWorkScene(){
   return scene6({
     mode:'narration',arc:'work',
     title: pick(r,['铺子里的一天','账对不上','一个不太干净的活','走还是留','闹起来的人','少了半吊钱','货压在手里','熟客翻脸','新来的学徒','东家要盘账']),
-    opening: pick(r,open)(),
+    opening: pick(r,open)() + worldFlavor(),
     ask:'你打算怎么处理？',
     days: rint(r,10,60),
     choices:[
@@ -145,18 +166,20 @@ function genWorkScene(){
 function genFamilyScene(){
   const L=worldLex(), r=Math.random;
   const f=L.family.length?pick(r,L.family):null;
+  const famMap={'父':'父亲','母':'母亲','手足':'手足','家人':'家人'};
   const who=f?f.name:'家里的人';
-  const rel=f?f.family:'家人';
+  const relKey=f?f.family:'家人';
+  const rel=famMap[relKey]||relKey;
   const open=[
-    ()=>`${who}（你的${rel}）近来不太对劲。夜里咳嗽，白天却说自己没事。`,
-    ()=>`${who}把你叫住，说家里有件事必须让你知道：${pick(r,['欠了钱','有人提亲','老屋要卖','族里要分家','有人在背后说我们'])}。`,
-    ()=>`${who}老了。这天你发现${rel}系鞋带时手在抖，却不肯让你帮。`,
-    ()=>`${who}忽然问起你以后怎么办。问得很轻，像是怕你听清。`
+    ()=>f?`${who}（你的${rel}）近来不太对劲。夜里咳嗽，白天却说自己没事。`:`家里最年长的那位近来不太对劲。夜里咳嗽，白天却说自己没事。`,
+    ()=>`${f?who:'家里的人'}把你叫住，说家里有件事必须让你知道：${pick(r,['欠了钱','有人提亲','老屋要卖','族里要分家','有人在背后说我们'])}。`,
+    ()=>f?`${who}老了。这天你发现${rel}系鞋带时手在抖，却不肯让你帮。`:`家里最年长的那位老了。这天你发现他系鞋带时手在抖，却不肯让你帮。`,
+    ()=>`${f?who:'家里的长辈'}忽然问起你以后怎么办。问得很轻，像是怕你听清。`
   ];
   return scene6({
     mode:'dialogue',arc:'family',npcId:f?f.id:null,npcName:who,npcRole:rel,
     title: pick(r,['家里的人','一件必须知道的事','老去的手','问起以后','一碗药','族里的意思','旧屋','分家','冬衣','谁欠了谁']),
-    opening:pick(r,open)(),
+    opening:pick(r,open)() + worldFlavor(),
     ask:'你想怎么回应？',
     days:rint(r,3,20),
     choices:[
@@ -275,6 +298,7 @@ function genMarriageScene(){
     opening:`${p.name}提起以后的事。${L.name}的人结婚讲究实在：住处、营生、两家能不能处得来。${p.name}没有催你，只是把话说到了这里。`,
     ask:'你怎么回答？',
     days:rint(r,5,30),
+    keepChoices:true,
     choices:[
       C('定下来，一起过','把话说死，也把日子过起来。','成为伴侣 · 责任+',{tone:'marry',flag:'married_'+p.id,bond:15}),
       C('再等一等','现在还不是时候。','关系保留 · 对方会记住',{tone:'wait',bond:-2}),
@@ -291,6 +315,7 @@ function genChildScene(){
     opening:`你和${state.spouse||'伴侣'}有了孩子。${L.name}的夜里很吵，孩子哭起来的时候，整条街都听得见。你抱着来回走，想起自己小时候也是这样被人抱着的。`,
     ask:'你想怎么养这个孩子？',
     days:rint(r,120,300),
+    keepChoices:true,
     choices:[
       C('照自己小时候的方式养','把你受过的，原样传下去。','延续 · 孩子像你',{tone:'repeat',bond:5}),
       C('按自己希望被对待的方式养','把没得到的，给出去。','温柔 · 自己也会被治愈',{tone:'heal',emotion:{爱:6}}),
@@ -338,13 +363,42 @@ function directorPick6(){
   ensureSocial();
   if(age()<13)genericFamily();
   const recent=state.recentScenes||[];
-  const ok=s=>!recent.includes(s.title);
+  const beats=state.recentBeats||[];
+  const ok=s=>{
+    if(recent.includes(s.title))return false;
+    const key=String(s.opening||'').slice(0,14);
+    return !beats.includes(key);
+  };
 
   // pending chain first
   if(state.chainQueue&&state.chainQueue.length){
     const nextId=state.chainQueue.shift();
     const built=chainScene(nextId);
-    if(built)return built;
+    if(built)return finishScene6(built);
+  }
+
+  // an open thread comes due — old choices are supposed to come back
+  state.threads=(state.threads||[]).filter(t=>t&&t.open);
+  const due=state.threads.find(t=>state.days>=(t.due||0));
+  if(due&&age()>=8&&r()<0.85&&typeof threadScene6==='function')return finishScene6(threadScene6(due));
+
+  // the extra incident generators (variety beyond the ten base scenes)
+  const gens=state.genHistory||[];
+  const fresh=(name,fn)=>{
+    if(gens.slice(-4).filter(x=>x===name).length>=2)return null;
+    return fn();
+  };
+  if(typeof EXTRA_GENS6!=='undefined'){
+    const extra=EXTRA_GENS6.filter(g=>{try{return g.when();}catch(e){return false;}});
+    if(extra.length&&r()<0.52){
+      const bag=[];
+      for(const g of extra)for(let i=0;i<g.w;i++)bag.push(g);
+      for(let i=0;i<4;i++){
+        const g=pick(r,bag);
+        const s=fresh(g.name,g.fn);
+        if(s&&ok(s)){s.gen=g.name;return finishScene6(s);}
+      }
+    }
   }
 
   // stage entry (once)
@@ -361,43 +415,78 @@ function directorPick6(){
       dusk:   ()=>genAgingScene()
     };
     const s=(seeds[k]||genWorkScene)();
-    if(s&&ok(s))return s;
+    if(s&&ok(s))return finishScene6(s);
   }
 
   // weighted candidate mix by stage; always fresh text
   const pool=[];
-  const add=(fn,w)=>{for(let i=0;i<w;i++)pool.push(fn);};
-  if(a<7){ add(genEarlyChildhood,10); }
-  else if(a<13){ add(genEarlyChildhood,6); add(genFamilyScene,3); }
-  else if(a<19){ add(()=>genTeenScene(),5); add(genFamilyScene,3); add(genSocialScene,2); }
+  const add=(fn,name,w)=>{for(let i=0;i<w;i++)pool.push([fn,name]);};
+  if(a<7){ add(genEarlyChildhood,'child',10); }
+  else if(a<13){ add(genEarlyChildhood,'child',6); add(genFamilyScene,'family',3); }
+  else if(a<19){ add(genTeenScene,'teen',5); add(genFamilyScene,'family',3); add(genSocialScene,'social',2); }
   else if(a<31){
-    add(genWorkScene,3); add(genSocialScene,4); add(genLoveScene,4); add(genFamilyScene,2); add(genBusinessScene,2); add(genCrisisScene,1);
-    if(state.flags.includes('married')||state.spouse) add(genChildScene,2);
-    if(!state.spouse&&age()>=21&&(state.relationships||[]).some(x=>!x.family&&x.affinity>=40)) add(genMarriageScene,4);
-    if(state.shopName) add(genBusinessScene,2);
+    add(genWorkScene,'work',3); add(genSocialScene,'social',4); add(genLoveScene,'love',4); add(genFamilyScene,'family',2); add(genBusinessScene,'business',2); add(genCrisisScene,'crisis',1);
+    if(state.flags.includes('married')||state.spouse) add(genChildScene,'childgrow',2);
+    if(!state.spouse&&age()>=21&&(state.relationships||[]).some(x=>!x.family&&x.affinity>=40)) add(genMarriageScene,'marriage',4);
+    if(state.shopName) add(genBusinessScene,'business',2);
   } else if(a<51){
-    add(genWorkScene,3); add(genFamilyScene,3); add(genLoveScene,2); add(genBusinessScene,3); add(genCrisisScene,2); add(genAgingScene,1);
-    if(state.spouse) add(genChildScene,2);
+    add(genWorkScene,'work',3); add(genFamilyScene,'family',3); add(genLoveScene,'love',2); add(genBusinessScene,'business',3); add(genCrisisScene,'crisis',2); add(genAgingScene,'aging',1);
+    if(state.spouse) add(genChildScene,'childgrow',2);
   } else {
-    add(genAgingScene,5); add(genFamilyScene,3); add(genLoveScene,2); add(genBusinessScene,1); add(genCrisisScene,1);
+    add(genAgingScene,'aging',5); add(genFamilyScene,'family',3); add(genLoveScene,'love',2); add(genBusinessScene,'business',1); add(genCrisisScene,'crisis',1);
   }
-  for(let i=0;i<24;i++){
-    const s=pick(r,pool)();
-    if(s&&ok(s))return finishScene6(s);
+  const recentGens=(state.genHistory||[]).slice(-3);
+  for(let i=0;i<28;i++){
+    const [fn,name]=pick(r,pool);
+    if(recentGens.filter(x=>x===name).length>=2)continue;
+    const s=fn();
+    if(s&&ok(s)){s.gen=name;return finishScene6(s);}
   }
   return finishScene6(genWorkScene());
 }
 
+const TITLE_RULES = [
+  [/对门|同行|快半步|抢先一步|当众把|落魄了/, '对门的人'],
+  [/不该在那里的东西|叫出你的名字|那扇门|一行字|灯全灭了|不该下的雨/, '不该有的东西'],
+  [/借宿|敲门|门外站着|檐下/, '门外的人'],
+  [/捡到|拾到|半袋|旧木匣|磨平的铜片/, '捡来的东西'],
+  [/传言|闲话|背后说|变了三遍|解释不清/, '传言'],
+  [/定钱|一批便宜的|验货|秤|缺斤少两/, '一笔买卖'],
+  [/梦|不认识的街|醒来时|枕头是湿/, '梦'],
+  [/连下了|大风|霜来得|水涨上了岸|日头毒|雪压塌|风暴|天时/, '天时'],
+  [/孩子问你|问你：|张了张嘴/, '问问题'],
+  [/借.{0,6}钱|想借|开口借钱|欠你/, '开口'],
+  [/师傅|手艺|料钱|成品|出师/, '手上的活'],
+  [/集市|祭祖|告示|押着走|办喜事|挤满了人|街口/, '街口'],
+  [/苏.{0,3}老了|系鞋带|手在抖|夜里咳嗽|不太对劲/, '老去'],
+  [/丧|葬|棺|死|亡|钟|尸|碑/, '丧事'],
+  [/发热|发烧|病|药|咳|疼|伤|医/, '一场病'],
+  [/账|债|租|工钱|本钱|税|欠了钱|赊/, '一笔账'],
+  [/灯油|灯芯|剪芯|灯下|一盏灯|日门|雾晶灯/, '灯下'],
+  [/田|谷|种|收|穗|糠|星|地力/, '田里的事'],
+  [/船|渡口|河水|井水|水路|桥|涨潮|赶潮|涨上了岸/, '水上'],
+  [/婚|嫁|娶|提亲|媒|聘|亲事/, '婚事'],
+  [/邻家|邻居|玩伴|争一样东西/, '邻里'],
+  [/孩子|生养|啼哭|抚养/, '孩子'],
+  [/出远门|上路|搬走|驿站|赶路|动身|离开这里/, '出门'],
+  [/官|役|封|禁|规矩|令|征/, '官面的事'],
+  [/集市|铺|摊|客|货|买|卖/, '铺子里'],
+  [/母亲|父亲|手足|族里|祖|家里的大人|家里人/, '家里的人'],
+  [/镜|记忆|梦|雾晶|档/, '记得的事'],
+  [/雷|织|纸|甲|匠|坊|丝/, '手艺'],
+];
+function titleOf(text, fallback) {
+  for (const [re, t] of TITLE_RULES) if (re.test(text)) return t;
+  return fallback === null ? null : (fallback || '一个片段');
+}
 function uniqueTitle(base){
   const L=worldLex();
   const used=(state.seenScenes||[]);
+  if(!used.includes(base))return base;
   const seasons=['初春','仲春','暮春','初夏','盛夏','夏末','初秋','仲秋','暮秋','初冬','隆冬','残冬'];
-  const marks=['','·前','·后','·夜','·晨'];
-  for(const mk of marks){
-    for(const se of seasons){
-      const t=base+mk+'·'+se;
-      if(!used.includes(t))return t;
-    }
+  for(const se of seasons){
+    const t=base+'·'+se;
+    if(!used.includes(t))return t;
   }
   for(const pl of L.places){
     for(const se of ['初春','盛夏','暮秋','隆冬']){
@@ -408,7 +497,13 @@ function uniqueTitle(base){
   return base+'·'+L.place+'·'+(used.length+1);
 }
 function finishScene6(s){
+  if(s.gen){
+    state.genHistory=state.genHistory||[];
+    state.genHistory.push(s.gen);
+    if(state.genHistory.length>12)state.genHistory.shift();
+  }
   s.title=uniqueTitle(s.title);
+  if(!state.seenScenes.includes(s.title))state.seenScenes.push(s.title);
   s.english=pickWords3(s);
   return s;
 }
@@ -421,6 +516,7 @@ function genAdultOpening(){
     opening:`成年了。${L.name}的${L.season}，你站在${L.place}，手里没有多少钱，也没有人替你安排以后。${L.daily}`,
     ask:'你打算先做什么？',
     days:rint(r,10,40),
+    keepChoices:true,
     choices:[
       C('找一份工','先有饭吃，再谈别的。','收入 · 稳定',{tone:'work',flag:'path_work'}),
       C('学一门手艺','宁可慢一点，也要学个长久的。','智识+ · 短期没钱',{stats:{智识:1},tone:'study',flag:'path_study'}),
@@ -440,7 +536,7 @@ function genTeenScene(){
   return scene6({
     mode:'narration',arc:'teen',
     title: pick(r,['想以后','师傅问的话','两条路','不甘心','同龄人','第一次撒谎','出门','留下的理由','有人提亲']),
-    opening:pick(r,open)(),
+    opening:pick(r,open)() + worldFlavor(),
     ask:'你怎么选？',
     days:rint(r,30,120),
     choices:[
@@ -556,9 +652,26 @@ function resolveScene6(choiceIndex){
   const s=state.scene;
   if(!s||!s.choices||!s.choices[choiceIndex])return;
   const ch=s.choices[choiceIndex];
-  const p=ch.payload||{};
+  const p=Object.assign({},ch.payload||{});
   const L=worldLex();
   let outcome='';
+
+  // 赌一把的选项真的会摇：机缘决定成败，成败改写这一段的收益
+  let riskRoll=null;
+  if(p.risk){
+    const luck=state.stats.机缘||1;
+    const chance=Math.max(.28,Math.min(.86,.45+luck*.03-(p.tone==='gamble'?.05:0)));
+    const won=Math.random()<chance;
+    riskRoll={won,chance:Math.round(chance*100)};
+    if(won){
+      p.coins=Math.round((p.coins||0)*1.8)+20;
+      p.reputation=(p.reputation||0)+2;
+    }else{
+      p.coins=-(Math.abs(p.coins||0)+Math.round(40+Math.random()*80));
+      p.health=(p.health||0)-6;
+      p.reputation=(p.reputation||0)-2;
+    }
+  }
 
   if(p.stats)for(const k in p.stats)state.stats[k]=Math.max(1,Math.min(20,(state.stats[k]||1)+p.stats[k]));
   if(p.coins)state.coins=Math.max(0,state.coins+p.coins);
@@ -568,6 +681,11 @@ function resolveScene6(choiceIndex){
   if(p.bond)state.bond=Math.min(100,Math.max(0,state.bond+p.bond));
   if(p.emotion)changeEmotion(p.emotion);
   if(p.flag){(state.flags=state.flags||[]).push(p.flag);}
+  if(p.thread){
+    state.threads=state.threads||[];
+    state.threads.push({id:'th_'+Date.now()+'_'+Math.floor(Math.random()*999),text:String(p.thread).slice(0,60),age:age(),days:state.days,due:state.days+Math.floor(180+Math.random()*420),open:true,scene:null});
+    if(state.threads.length>12)state.threads=state.threads.slice(-12);
+  }
   if(p.shop){state.shopName=p.shop;state.flags.push('shop_open');}
 
   // relationship effects
@@ -629,7 +747,41 @@ function resolveScene6(choiceIndex){
     honest:`你把话说开了。家里吵了一架，但吵完之后，反而比以前实在。`,
     avoid:`你把话岔开了。那件事没有解决，只是暂时没人提。`
   };
-  outcome=toneText[p.tone]||'事情就这样过去了。';
+  const extraTone={
+    bargain:`你跟对方一点点磨。最后让了一步，也算省下一点。`,
+    report:`你把事交到了上面。事情办得快，只是从此欠了一个人情。`,
+    hide:`你把它瞒了下来。日子照旧，只是每次有人提起，你都要先想一下怎么答。`,
+    gamble:`你把钱押了上去。开牌那一刻，手心里全是汗。`,
+    pray:`你按老规矩做了一遍。有没有用说不清，心里倒是静了一点。`,
+    repair:`你自己动手，弄了几天，总算恢复了大半。`,
+    escort:`你陪着走了一趟。路上不算太平，但人平安到了。`,
+    sell:`你折价出了手。钱是拿到了一点，心里空了一块。`,
+    collect:`你上门把账要了回来。钱回来了，这门亲戚也淡了。`,
+    teach:`你耐着性子教了一遍。对方学会的时候，你比自己学会还高兴。`,
+    witness:`你站出来把看见的说了。有人谢你，也有人记住了你的脸。`,
+    keep:`你把它收了起来。夜里想起，会翻出来看一眼。`,
+    trade:`你做了一笔小买卖。赚得不多，路子倒是摸清了一点。`,
+    tell:`你跑去把大人叫了来。事情最后怎么解决的你不知道，但你记得自己跑得很快。`,
+    ignore:`你没有接话，低头做自己的活。对方说了几句，见没人应，也就散了。`,
+    help:`你把手上的事放下，先去帮了。忙完天已经黑了，自己那摊事还堆着。`,
+    sneak:`你背着人试了一次。没出事，也没人知道；只是从那以后，你心里多了一点自己的主意。`,
+    pay:`钱付出去的时候心疼，事情办完却干净。回去的路上，你觉得肩轻了一点。`,
+    borrow:`钱拿到了，字据也画了押。走出门你才想起，往后每个月的这一天都得记着。`,
+    refuse:`你没有点头。对方脸色变了一下，说了句“随你”，转身走了。`,
+    escape:`你走了。风头是避过去了，可等你回来，位置已经换了人。`,
+    risk:`你把这一把押了下去。手心里全是汗，最后是盈是亏，只能等天亮。`,
+    study:`你开始学。学得慢，手上也生，但每天晚上都比前一天多懂一点。`,
+    elder:`你去问了。对方说的不一定对，但至少你没有自己瞎猜。`,
+    distance:`你退了一步。日子还是照过，只是再见面时，话少了一半。`,
+    shop:`你把本钱压进了一间小铺。开张那天没什么人，你站在柜台后面，从早等到晚。`
+  };
+  outcome=(extraTone[p.tone]||'')||toneText[p.tone]||'事情就这样过去了。';
+  if(ch.outcome)outcome=ch.outcome;
+  if(riskRoll){
+    outcome=riskRoll.won
+      ? `你赌赢了。${outcome}`
+      : `你赌输了。钱没了大半，人也伤了。${L.place}的人看着你从地上爬起来，没有人伸手。`;
+  }
 
   // consequence nudges
   if(p.tone==='confess'&&state.spouse)outcome=`你把话说出口。${s.npcName}没有立刻回答，只是把手放进你的掌心。你们决定一起走一段路。`;
@@ -643,15 +795,47 @@ function resolveScene6(choiceIndex){
     state.children=1;
     state.chainQueue.push('child_grow');
   }
-  if(state.flags.includes('pill_seek'))state.chainQueue.push('pill_after');
+  if(state.flags.includes('pill_seek')&&!state.flags.includes('pill_done')){
+    state.flags.push('pill_done');
+    state.chainQueue.push('pill_after');
+  }
 
   // time + money
   const days=s.days||30, months=days/30;
   const before=state.coins;
-  const income=state.employed?Math.floor((state.salary||0)*months):(age()>=16?Math.floor(monthlyLiving()*months*0.9):0);
-  if(income)state.coins+=income;
-  const cost=(age()>=18)?Math.min(state.coins,Math.floor(monthlyLiving()*months)):0;
-  state.coins=Math.max(0,state.coins-cost);
+
+  // 成年路口真正决定营生：找了工就有工钱，学了手艺就慢慢有活，开了铺子就有流水
+  if(p.flag==='path_work'&&!state.employed){
+    state.employed=true;state.salary=Math.floor(annualIncome()/12);state.occupation='雇工';
+  }
+  if(p.flag==='path_study'){state.study=true;}
+  if(p.flag==='path_business'&&!state.employed){
+    state.employed=true;state.salary=Math.floor(annualIncome()/12*0.82);state.occupation='小贩';
+  }
+  if(state.study&&age()>=17&&!state.employed&&Math.random()<0.5){
+    state.employed=true;state.salary=Math.floor(annualIncome()/12*0.9);state.occupation='手艺人';
+  }
+
+  let income=state.employed?Math.floor(Math.min(state.salary||0,annualIncome()/12)*months):0;
+  if(!state.employed&&age()>=16&&age()<58){
+    // 没正经营生的人靠打零工活着：饿不死，也攒不下
+    income+=Math.floor(monthlyLiving()*months*0.58);
+    state.flags=state.flags||[];
+    if(!state.flags.includes('odd_jobs'))state.flags.push('odd_jobs');
+  }
+  let cost=0;
+  if(age()>=18){
+    const due=Math.floor(monthlyLiving()*months);
+    const pot=state.coins+income;
+    cost=Math.min(pot,due);
+    state.coins=Math.max(0,pot-cost);
+    if(cost<due*0.6&&!state.employed){
+      state.health=Math.max(1,state.health-3);
+      changeEmotion({哀:3});
+    }
+  }else{
+    state.coins=Math.max(0,state.coins+income);
+  }
 
   advance5(days);
   const settleMonth=monthLabel();
@@ -665,6 +849,8 @@ function resolveScene6(choiceIndex){
   const gains=[];
   if(income)gains.push({k:age()>=16?'收入':'家用',v:income,c:'good'});
   if(cost)gains.push({k:'支出',v:-cost,c:'bad'});
+  if(p.coins)gains.push({k:'钱',v:p.coins,c:p.coins>0?'good':'bad'});
+  if(p.bond)gains.push({k:'亲近',v:p.bond,c:p.bond>0?'good':'bad'});
   if(p.stats)for(const k in p.stats)gains.push({k,v:p.stats[k],c:p.stats[k]>0?'good':'bad'});
   if(p.health)gains.push({k:'健康',v:p.health,c:p.health>0?'good':'bad'});
   if(p.reputation)gains.push({k:'声望',v:p.reputation,c:p.reputation>0?'good':'bad'});
@@ -688,9 +874,15 @@ function resolveScene6(choiceIndex){
     title:s.title, choice:ch.title, outcome, gains,
     outcomeEN:enByTone[p.tone]||'',
     sceneSnapshot:{title:s.title,opening:s.opening,ask:s.ask,choice:ch.title,tone:p.tone||''},
-    days, age:age(), words:s.english||[],
+    thread:p.thread||'',
+    days, age:age(), words:s.english||[], risk:riskRoll,
     next:s.choices[choiceIndex]&&ch
   };
+  state.lastBeat={age:age(),title:s.title,choice:ch.title,outcome:outcome.slice(0,90)};
+  if(typeof prefetchNext6==='function')prefetchNext6();
+  state.recentBeats=state.recentBeats||[];
+  state.recentBeats.push(String(s.opening||'').slice(0,14));
+  if(state.recentBeats.length>10)state.recentBeats.shift();
   state.dialog=[];state.sceneTurns=0;state.sceneStats={warmth:0,resolve:0,honesty:0};
   state.scene=null;
   save();render();
@@ -700,6 +892,10 @@ function continueScene6(){
   if(state.busy)return;
   state.result6=null;
   state.scene=null;
-  state.scene=directorPick6();
   page='scene';save();render();
+}
+function rerollScene6(){
+  if(sceneBusy6)return;
+  state.scene=null;save();render();
+  toast('换一段');
 }

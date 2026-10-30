@@ -247,9 +247,11 @@ function decorateScene(raw,tag){
 }
 function monthlyLiving(){
   const wage=state.employed?Math.min(state.salary||0,annualIncome()/12):(state.pension||0);
-  const base=state.pension?(state.pension*1.18):(wage>0?wage*0.72:Math.max(130,annualIncome()/12*0.46));
-  const wealth=1+Math.min(1.4,(state.coins||0)/45000);
-  return Math.max(100,Math.floor(base*effect().cost*wealth));
+  const base=state.pension?(state.pension*1.12):(wage>0?wage*0.58:Math.max(150,annualIncome()/12*0.46));
+  // 日子会跟着钱一起变贵：存得越多，住处、人情、应酬越贵。攒钱有软上限，但不是死线。
+  const wealth=1+Math.min(1.05,(state.coins||0)/95000);
+  const mouths=1+Math.min(3,(state.children||0))*0.2+(state.spouse?0.22:0);
+  return Math.max(120,Math.floor(base*effect().cost*wealth*mouths));
 }
 function checkRetire(){
   if(age()>=58&&state.employed){

@@ -186,6 +186,115 @@ function confirmSetup6(){
   <button class="btn primary" onclick="begin6()">出生</button>`;
 }
 
+/* ---------------- sheets ---------------- */
+function sheet6(html){
+  const el=document.createElement('div');
+  el.className='modal';el.id='modal';
+  el.innerHTML=`<div>${html}</div>`;
+  el.addEventListener('click',e=>{if(e.target===el)el.remove();});
+  document.body.appendChild(el);
+}
+function showGuide6(){
+  sheet6(`<h2>怎么玩</h2>
+  <p class="small">你从 0 岁出生，一段一段地活。每一段都是一件具体的事，摆在面前的是三个不同的做法，不是三道心理题。</p>
+  <p class="small">选项会真的结算：钱、健康、声望、和人的亲近、七情，以及留在后面的「没结的事」。有些事隔几年会回来找你。</p>
+  <p class="small">普通人寿限 100 岁。商店里的续命药一颗续十年，价格每买一颗翻倍——这是十年尺度的目标，不是打几份工就能买到的东西。</p>
+  <p class="small">在设置里填 DeepSeek 密钥后，每一段剧情、三个选项和三个英文词都由 AI 按你此刻的处境现写；不填也能离线玩，剧情由本地导演生成。</p>
+  <p class="small faint">所有进度、密钥都只保存在这台设备的浏览器里，不上传云端。</p>
+  <button class="btn" onclick="document.getElementById('modal').remove()">知道了</button>`);
+}
+function showArchive(){
+  const runs=meta.runs||[];
+  sheet6(`<div class="row"><h2 style="margin:0">轮回档案</h2><span class="tag">${runs.length} 次</span></div>
+  <p class="small muted" style="margin:6px 0 14px">每一世都会留在这里。清空浏览器数据会一起消失。</p>
+  ${runs.length?runs.map(r=>`<div class="card" style="margin-bottom:10px">
+    <div class="row"><b style="font:400 17px/1.4 var(--serif)">${esc(r.name||'无名')}</b><span class="mono small">${r.age} 岁</span></div>
+    <p class="small muted" style="margin:4px 0 0">${esc(r.world||'')} · ${esc(r.title||'')}${r.date?' · '+esc(r.date):''}</p>
+  </div>`).join(''):'<p class="small muted">还没有走完的一生。先去活一次。</p>'}
+  <button class="btn ghost" style="margin-top:8px" onclick="document.getElementById('modal').remove()">关闭</button>`);
+}
+function showSettings6(){
+  const aiOn=!!(state.apiKey&&state.ai!==false);
+  sheet6(`<h2>设置</h2>
+  <div class="notice">不外传。密钥只存在这台设备的浏览器里，请求直接发往 DeepSeek 官方接口。</div>
+  <div style="margin:14px 0"><label class="small muted">DeepSeek API Key</label>
+    <input id="api6" type="password" value="${esc(state.apiKey||'')}" placeholder="sk-... 不填则离线剧情">
+    <p class="small faint" style="margin:6px 0 0">填了之后，每段剧情和三个选项由 AI 现写；失败会自动退回本地剧情，不会卡住。</p>
+  </div>
+  <label class="small" style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="aion6" ${aiOn?'checked':''} style="width:auto"> 用 AI 生成剧情与选项</label>
+  <label class="small" style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="en6" ${state.english?'checked':''} style="width:auto"> 每段之后提供英文回顾</label>
+  <div class="grid2" style="margin-top:12px">
+    <button class="btn" onclick="saveSettings6()">保存</button>
+    <button class="btn ghost" onclick="aiTest6()">测试接口</button>
+  </div>
+  <p class="small faint" style="margin-top:10px">模型 deepseek-chat · 状态：${state.apiKey?(AI6.lastError?'上次失败：'+esc(AI6.lastError):'已配置'):'未配置'}</p>
+  <hr style="border:none;border-top:1px solid var(--rule);margin:18px 0">
+  <button class="btn danger" onclick="wipe6()">清除本地存档</button>
+  <button class="btn ghost" style="margin-top:10px" onclick="document.getElementById('modal').remove()">关闭</button>`);
+}
+function saveSettings6(){
+  const a=document.getElementById('api6'), on=document.getElementById('aion6'), en=document.getElementById('en6');
+  if(a)state.apiKey=a.value.trim();
+  if(on)state.ai=on.checked;
+  if(en)state.english=en.checked;
+  AI6.lastError='';
+  save();document.getElementById('modal').remove();render(true);
+  toast(state.apiKey?'已保存 · 下一段开始由 AI 续写':'已保存 · 离线剧情');
+}
+function wipe6(){
+  if(!confirm('删除这台设备上的全部进度和密钥？'))return;
+  try{localStorage.removeItem(KEY);localStorage.removeItem(META_KEY);}catch(e){}
+  location.reload();
+}
+
+/* ---------------- scene generation (AI first, local fallback) ---------------- */
+let sceneBusy6=false;
+let prefetch6=null, prefetchBusy6=false;
+
+/* write the next scene while the player is reading the result, so 'continue' feels instant */
+function prefetchNext6(){
+  if(prefetch6||prefetchBusy6)return;
+  if(!(typeof aiReady==='function'&&aiReady()))return;
+  prefetchBusy6=true;
+  const h=hashText((state.name||'')+'|'+state.days+'|'+(state.memories||[]).length+'|'+(state.lastBeat&&state.lastBeat.title||''));
+  aiScene6(()=>null).then(sc=>{
+    prefetchBusy6=false;
+    if(sc)prefetch6={key:h,scene:sc};
+  }).catch(()=>{prefetchBusy6=false;});
+}
+function takePrefetch6(){
+  const sc=prefetch6?prefetch6.scene:null;
+  prefetch6=null;
+  return sc;
+}
+function ensureScene6(){
+  if(state.scene&&state.scene.choices)return true;
+  const pre=takePrefetch6();
+  if(pre){
+    state.scene=pre;
+    if(!state.scene.english||!state.scene.english.length)state.scene.english=pickWords3(state.scene);
+    save();
+    return true;
+  }
+  if(sceneBusy6)return false;
+  if(typeof aiReady==='function'&&aiReady()){
+    sceneBusy6=true;
+    aiScene6(()=>directorPick6()).then(sc=>{
+      sceneBusy6=false;
+      state.scene=sc||directorPick6();
+      if(!state.scene.english||!state.scene.english.length)state.scene.english=pickWords3(state.scene);
+      save();
+      if(page==='scene'&&!state.result6)render(true);
+    }).catch(()=>{
+      sceneBusy6=false;state.scene=directorPick6();save();
+      if(page==='scene')render(true);
+    });
+    return false;
+  }
+  state.scene=directorPick6();
+  return true;
+}
+
 /* ---------------- play ---------------- */
 function play6(){
   if(state.result6)return result6();
@@ -221,35 +330,59 @@ function nav6to(p){page=p;render();}
 
 function scene6Page(){
   ensureLife5();
-  if(!state.scene||!state.scene.choices){state.scene=directorPick6();}
+  const ready=ensureScene6();
+  if(!ready){
+    return `<div class="view" style="padding-top:16px">
+      <canvas data-field="wide" style="height:84px;width:100%;margin-bottom:18px"></canvas>
+      <div class="scene-meta">${esc(world().name)} · ${esc(currentPlace5())} · ${age()} 岁</div>
+      <h1 class="scene-title">正在写下这一段…</h1>
+      <div class="prose"><p class="faint">AI 正在按你此刻的处境写这一段：谁在场、手里有多少钱、上一次选了什么。通常几秒钟。</p>
+      <p class="small faint" style="margin-top:10px">如果网络不通，会自动换成本地剧情，不会停在这里。</p></div>
+      <div class="loading"><i></i></div>
+    </div>`;
+  }
   const s=state.scene;
   if(!s.english||!s.english.length)s.english=pickWords3(s);
+  const recall=s.recall?`<div class="notice" style="margin-top:12px"><b>旧事</b> · ${esc(s.recall.title)}：${esc(String(s.recall.text||'').slice(0,54))}…</div>`:'';
   return `<div class="view" style="padding-top:16px">
     <canvas data-field="wide" style="height:84px;width:100%;margin-bottom:16px"></canvas>
     <div class="scene-head">
-      <div class="scene-meta">${esc(world().name)} · ${esc(s.location)} · ${s.days} 天</div>
+      <div class="scene-meta">${esc(world().name)} · ${esc(s.location)} · ${span6(s.days)} · <span class="src">${s.ai?'AI 现写':'本地导演'}</span></div>
       <h1 class="scene-title">${esc(s.title)}</h1>
       <div class="prose">${esc(cleanText(s.opening))}</div>
       ${s.ask?`<div class="ask">${esc(s.ask)}</div>`:''}
     </div>
+    ${recall}
     ${s.choices.map((c,i)=>`<button class="choice" onclick="choose6(${i})">
       <span class="n">0${i+1}</span>
       <span><span class="t">${esc(c.title)}</span><span class="d">${esc(c.desc)}</span><span class="h">${esc(c.hint)}</span></span>
     </button>`).join('')}
-    <p class="small faint" style="margin-top:16px">每个选择都会改变后面的路。不是所有选项都一样好。</p>
+    <div class="row" style="margin-top:14px">
+      <p class="small faint" style="margin:0">三个选择会走向不同的路，也会留下不同的后患。</p>
+      <button class="btn ghost" style="width:auto;padding:7px 12px" onclick="rerollScene6()">${s.ai?'重写这一段':'换一段'}</button>
+    </div>
   </div>`;
 }
 function choose6(i){ resolveScene6(i); }
+function span6(d){
+  d=Math.max(1,Math.round(d||0));
+  if(d<45)return d+' 天';
+  if(d<330)return Math.round(d/30)+' 个月';
+  const y=d/365;
+  return (y<1.6?'约一年':y.toFixed(1)+' 年');
+}
 
 function result6(){
   const r=state.result6;
   return `<div class="view">
     <div class="eyebrow">After this</div>
     <h1 class="scene-title" style="margin-bottom:6px">${esc(r.title)}</h1>
-    <div class="small faint mono" style="margin-bottom:14px">你选了：${esc(r.choice)} · ${r.days} 天 · ${r.age} 岁</div>
+    <div class="small faint mono" style="margin-bottom:14px">你选了：${esc(r.choice)} · ${span6(r.days)} · ${r.age} 岁</div>
     <canvas data-field="wide" style="height:56px;width:100%;margin-bottom:14px"></canvas>
     <div class="prose">${esc(cleanText(r.outcome))}</div>
     ${r.gains.length?`<div class="gains">${r.gains.map(g=>`<span class="gain ${g.c}">${esc(g.k)} ${g.v>0?'+':''}${g.v}</span>`).join('')}</div>`:''}
+    ${r.risk?`<div class="small" style="margin-top:10px"><span class="tag">${r.risk.won?'赌赢了':'赌输了'} · ${r.risk.chance}%</span></div>`:''}
+    ${r.thread?`<div class="notice" style="margin-top:14px"><b>留下的事</b> · ${esc(r.thread)}<br><span class="small faint">它会留在后面，隔些日子回来找你。</span></div>`:''}
     <div class="card" style="margin-top:18px"><div class="row"><h3 style="font:400 17px/1.4 var(--serif)">英文回顾</h3><button class="btn ghost" style="width:auto;padding:7px 11px" onclick="toggleRecap6()">${state.recapOpen?'收起':'展开'}</button></div>
       ${state.recapOpen?`<p class="recap" style="margin-top:10px">${esc(recapEN(r))}</p>`:'<p class="small muted" style="margin:6px 0 0">把这一段发生的事翻成英文。想读再展开。</p>'}
     </div>
@@ -283,11 +416,18 @@ World: ${world().name}. Scene: ${sn.title}. Event: ${sn.opening}. The person cho
   r.enBusy=false;save();render(true);
 }
 function recapEN(r){
-  if(state.recapCache&&state.recapCache.key===r.title+state.days)return state.recapCache.text;
+  const key=r.title+'|'+r.choice+'|'+r.days;
+  if(state.recapCache&&state.recapCache.key===key)return state.recapCache.text;
   const ageWord=r.age<4?'a small child':r.age<13?'a child':r.age<19?'a teenager':r.age<51?'an adult':'an old person';
-  const text=`This passage covers about ${r.days} days, when he or she was ${r.age}, ${ageWord}. ${(r.outcomeEN||'The days passed in the usual way, and something small shifted.')} Nothing in it was heroic, but it was a real stretch of a life: work, money, other people, and the sense that time keeps moving.`;
-  state.recapCache={key:r.title+state.days,text};
+  const body=r.outcomeEN||`For about ${r.days} days nothing dramatic was recorded: work, money, other people, and the quiet sense that time keeps moving.`;
+  const text=`This passage covers about ${r.days} days, when he or she was ${r.age}, ${ageWord}. ${body}`;
+  state.recapCache={key,text};
   return text;
+}
+function wordById6(id){
+  return (typeof ENGLISH_PACK!=='undefined'&&ENGLISH_PACK.find(x=>x.id===id))
+    || (typeof EXAM_WORDS!=='undefined'&&EXAM_WORDS.find(x=>x.id===id))
+    || (state.aiWords&&state.aiWords[id])||null;
 }
 function learnWord6(id){
   if(!state.englishSeen.includes(id))state.englishSeen.push(id);
@@ -374,7 +514,7 @@ function memory6(){
       ${m.people.length?`<p class="small faint">与：${esc(m.people.join('、'))}</p>`:''}
     </div>`).join(''):'<p class="small muted">还没有。先去活。</p>'}
     ${(state.englishSeen||[]).length?`<div class="scene-meta" style="margin-top:22px">遇到过的词</div>
-      <div class="words" style="margin-top:8px">${state.englishSeen.slice(-12).reverse().map(id=>{const w=ENGLISH_PACK.find(x=>x.id===id);return w?`<div class="word"><div class="w">${esc(w.word)}</div><div class="z">${esc(w.zh)}</div></div>`:'';}).join('')}</div>`:''}
+      <div class="words" style="margin-top:8px">${state.englishSeen.slice(-12).reverse().map(id=>{const w=wordById6(id);return w?`<div class="word"><div class="w">${esc(w.word)}</div><div class="z">${esc(w.zh)}</div></div>`:'';}).join('')}</div>`:''}
   </div>`;
 }
 function shop6(){
@@ -465,6 +605,7 @@ function ending6(){
 /* ---------------- start / rebirth ---------------- */
 function begin6(){
   resetLife();
+  prefetch6=null;prefetchBusy6=false;
   ensureLife5();
   const e=effect();
   state.coins=Math.max(80,START_COINS+e.add.coins);
@@ -474,7 +615,7 @@ function begin6(){
   state.occupation='';
   seedFamily(activePack());
   state.screen='play';page='scene';
-  state.scene=directorPick6();
+  state.scene=null;state.lastBeat=null;
   save();render();
   toast('你出生了');
 }
