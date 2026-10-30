@@ -217,7 +217,7 @@ function babyChoices(s, ctx) {
   const pool = [
     { title: `抓住${who}的衣角不放`, desc: `手很小，抓得很紧，谁劝都不松。`, hint: '被记住 · 心里安稳', payload: { bond: 4, emotion: { 爱: 3 }, tone: 'obey' } },
     { title: `哭到有人过来`, desc: '不知道想要什么，先哭。', hint: '有人来 · 众人都累', payload: { bond: 2, health: -1, tone: 'tell' } },
-    { title: `盯着${thing}看很久`, desc: '看不懂，但记住了它的样子。', hint: '记忆+ · 安静', payload: { stats: { 智识: 1 }, tone: 'ask' } },
+    { title: `盯着${thing === '药' || thing === '钱' || thing === '官面' ? '窗外' : thing}看很久`, desc: '看不懂，但记住了它的样子。', hint: '记忆+ · 安静', payload: { stats: { 智识: 1 }, tone: 'ask' } },
     { title: `自己爬过去摸一摸`, desc: '大人一转身，你已经到了那边。', hint: '胆量+ · 可能磕碰', payload: { emotion: { 惧: 2, 欲: 2 }, health: -1, tone: 'sneak' } },
     { title: `睡着了，什么也没记住`, desc: '这一天在梦里过去了。', hint: '身体+ · 无记忆', payload: { health: 2, tone: 'obey' } },
     { title: `伸手要${who}抱`, desc: '把手举起来，等人弯下腰。', hint: '亲近+', payload: { bond: 5, emotion: { 爱: 2 }, tone: 'help' } }
