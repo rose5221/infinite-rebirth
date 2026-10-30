@@ -27,7 +27,7 @@ function c9Top() {
     <div class="brand"><b>此世</b><span class="dot">·</span><span class="mono" style="font-size:11px;letter-spacing:.12em">一生</span></div>
     <div style="display:flex;gap:6px">
       <button class="icon" onclick="c9Book()">账</button>
-      <button class="icon" onclick="c9Help()">?</button>
+      <button class="icon" onclick="c9Settings()">设置</button>
     </div>
   </div>`;
 }
@@ -93,7 +93,22 @@ function c9Go(s) { s9.screen = s; c9Render(); }
 function c9Card() {
   if (s9.dead) return c9End();
   if (s9.outcome) return c9Result();
-  if (!s9.card) c9BuildCard();
+
+  if (s9.loading) {
+    return `<div class="view" style="padding-top:16px">
+      <div class="eyebrow">第 ${s9.year} 年 · ${s9.age} 岁</div>
+      <canvas data-field="wide" style="height:70px;width:100%;margin-bottom:16px"></canvas>
+      <h1 class="scene-title">${s9.loading === 'ai' ? '这一年出了件事…' : '这一年…'}</h1>
+      <p class="prose faint">${s9.loading === 'ai' ? '正在写一段只属于你这一生的插曲。' : '正在写这一年。'}</p>
+      <div class="loading"><i></i></div>
+    </div>`;
+  }
+
+  if (!s9.card) {
+    c9BuildCard();          // 先给一张本地卡，AI 好了再换
+    if (a9On() && !s9.prepared) { s9.prepared = true; setTimeout(c9Prepare, 60); }
+  }
+  if (!s9.card) return `<div class="view"><div class="loading"><i></i></div></div>`;
   const card = s9.card;
   const L = c9Lex();
   const alive = c9Alive().filter(p => p.id !== 'self');
@@ -171,6 +186,7 @@ function c9Result() {
 
     <div class="gains">${chips.map(c => `<span class="gain ${c.v > 0 ? 'good' : 'bad'}">${c.k} ${c.v > 0 ? '+' : ''}${c.v}</span>`).join('')}</div>
 
+    ${s9.card && s9.card.mark ? `<p class="small muted" style="margin-top:12px">「${c9Esc(s9.card.mark)}」</p>` : ''}
     ${s9.nextHint ? `<div class="notice" style="margin-top:14px">${c9Esc(s9.nextHint)}</div>` : ''}
 
     <button class="btn primary" style="margin-top:18px" onclick="c9NextYear()">下一年</button>
@@ -246,6 +262,15 @@ function c9End() {
     ${L.renew.length ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">续过 ${L.renew.length} 次命</h3>
       ${L.renew.map(r => `<p class="small" style="margin:7px 0"><span class="faint mono">${r.age} 岁</span> ${c9Esc(r.text)}</p>`).join('')}</div>` : ''}
 
+    ${s9.marks && s9.marks.length ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一生留下的几句话</h3>
+      ${s9.marks.slice(-6).map(x => `<p class="small" style="margin:5px 0">「${c9Esc(x)}」</p>`).join('')}</div>` : ''}
+
+    ${s9.letter ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">${c9Esc(s9.letter.from)}写的信</h3>
+      <p class="small" style="line-height:1.9">${c9Esc(s9.letter.letter)}</p></div>` :
+      (a9On() ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">半年后</h3>
+      <p class="small muted">有人要给你写一封信。</p>
+      <button class="btn ghost" style="margin-top:8px" onclick="c9GetLetter()">让他写</button></div>` : '')}
+
     <div class="card"><h3 style="font:400 17px/1.6 var(--serif)">最后一句</h3>
       <p class="small muted">${L.alive.length ? '床头站着人。你说了一句什么，没人听清。' : '床边没有人。屋里有灶灰的味道。'}</p>
     </div>
@@ -257,6 +282,17 @@ function c9End() {
 }
 
 function c9Again() { c9Make(s9.book, s9.name); s9.screen = 'card'; c9Render(); }
+
+async function c9GetLetter() {
+  c9Toast('正在写…');
+  try {
+    const L = await a9Letter();
+    if (!L.letter) throw new Error('empty');
+    s9.letter = L;
+    s9Save();
+    c9Render();
+  } catch (e) { c9Toast('没写出来：' + (e.message || '网络')); }
+}
 
 /* ---------- 弹层 ---------- */
 function c9Sheet(html) {
@@ -280,6 +316,42 @@ function c9Book() {
     </dl>
     <button class="btn" style="margin-top:14px" onclick="document.getElementById('c9modal').remove()">合上</button>`);
 }
+function c9Settings() {
+  c9Sheet(`<h2>设置</h2>
+    <p class="small muted">填了密钥，日常年由 AI 现写，还会随机插入只属于你这一生的插曲。不填也能读完全部六部。</p>
+    <div style="margin:14px 0"><label class="small muted">DeepSeek API Key</label>
+      <input id="a9key" type="password" value="${c9Esc(s9.apiKey || '')}" placeholder="sk-...">
+    </div>
+    <label class="small" style="display:flex;gap:8px;align-items:center;margin:12px 0">
+      <input type="checkbox" id="a9on" ${s9.ai !== false ? 'checked' : ''} style="width:auto"> 让 AI 写日常年与插曲
+    </label>
+    <button class="btn" onclick="c9SaveCfg()">保存</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="c9TestAI()">测试</button>
+    <hr style="border:none;border-top:1px solid var(--rule);margin:16px 0">
+    <p class="small faint">当前状态：${s9.apiKey ? (s9.ai !== false ? 'AI 已开' : 'AI 已关') : '未填密钥，纯离线'}</p>
+    <button class="btn ghost" style="margin-top:10px" onclick="document.getElementById('c9modal').remove()">关闭</button>`);
+}
+function c9SaveCfg() {
+  const k = document.getElementById('a9key'), a = document.getElementById('a9on');
+  if (k) s9.apiKey = k.value.trim();
+  if (a) s9.ai = a.checked;
+  a9SaveCfg(); s9Save();
+  document.getElementById('c9modal').remove();
+  c9Toast(s9.apiKey && s9.ai !== false ? '已保存 · 下一张卡开始由 AI 现写' : '已保存 · 纯离线');
+}
+async function c9TestAI() {
+  const k = document.getElementById('a9key'), a = document.getElementById('a9on');
+  if (k) s9.apiKey = k.value.trim();
+  if (a) s9.ai = a.checked;
+  a9SaveCfg();
+  if (!s9.apiKey) return c9Toast('先填密钥');
+  c9Toast('正在测试…');
+  try {
+    const d = await a9JSON('只输出 JSON。', '只输出 {"ok":true}', 60);
+    c9Toast(d && d.ok ? '连接正常，AI 剧情可用' : '有回应但格式不对');
+  } catch (e) { c9Toast('失败：' + (e.message || '网络')); }
+}
+
 function c9Help() {
   c9Sheet(`<h2>怎么活</h2>
     <p class="small">每年一张卡。卡上是这一年发生的事，下面是这一年你能做的事。</p>

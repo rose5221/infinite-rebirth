@@ -77,7 +77,10 @@ let s9 = {
   dead: false,
   why: '',
   lastSummary: '',
-  nextHint: ''
+  nextHint: '',
+  apiKey: '', ai: true,
+  years: [], yearlyLog: [], marks: [], seenTitles: [],
+  loading: false
 };
 
 /* ---------- 建局 ---------- */
@@ -106,7 +109,8 @@ function c9Make(book, name) {
     family: fam, rel: {}, picks: [], effort: 3,
     card: null, outcome: null, seen: [], log: [],
     renewals: [], deadline: 68, dead: false, why: '',
-    lastSummary: '', nextHint: ''
+    lastSummary: '', nextHint: '',
+    years: [], yearlyLog: [], marks: [], seenTitles: [], loading: false
   });
   s9Save();
 }
@@ -188,9 +192,70 @@ function c9Actions() {
 }
 
 /* ---------- 今年的卡 ---------- */
+/* 建卡后补 AI 内容（日常文本 / 插曲），失败就保留本地卡 */
+async function c9Prepare() {
+  if (!a9On()) return;
+  if (s9.outcome || s9.loading || s9.aiDone) return;
+  s9.aiDone = true;
+
+  // 插曲：替换掉当前这张卡
+  if (c9WantInterlude()) {
+    s9.loading = 'ai';
+    c9Render(true);
+    try {
+      const sc = await a9Scene();
+      s9.pendingInterlude = sc;
+      s9.lastWasInterlude = true;
+      s9.card = null;
+      c9BuildCard();
+    } catch (e) {
+      A9.lastErr = e.message || 'fail';
+      s9.lastWasInterlude = false;
+    }
+    s9.loading = false;
+    s9Save();
+    c9Render(true);
+    return;
+  }
+
+  // 日常文本：只换掉正文那一段
+  if (s9.card && s9.card.kind === 'daily') {
+    s9.loading = 'daily';
+    c9Render(true);
+    try {
+      const d = await a9Daily();
+      s9.card.text = d.text;
+      s9.card.mark = d.mark;
+      if (d.hint) s9.nextHint = d.hint;
+    } catch (e) {
+      A9.lastErr = e.message || 'fail';
+    }
+    s9.loading = false;
+    s9Save();
+    c9Render(true);
+  }
+}
+
 function c9BuildCard() {
+  s9.prepared = false;
+  s9.aiDone = false;
   const L = c9Lex();
   const a = s9.age;
+  s9.dailyText = ''; s9.dailyMark = '';
+
+  // AI 插曲优先
+  if (s9.pendingInterlude) {
+    const ai = s9.pendingInterlude;
+    s9.pendingInterlude = null;
+    s9.card = {
+      kind: 'plot', ai: true,
+      title: ai.title, text: ai.opening, ask: ai.ask,
+      actions: ai.choices.map((c, i) => ({ id: 'ai_' + i, name: c.title, desc: c.desc, hint: c.hint, effort: 2, plot: c })),
+      scene: ai
+    };
+    return;
+  }
+
   const sc = c9NextScene();
 
   if (sc) {
@@ -216,14 +281,32 @@ function c9BuildCard() {
   }
 
   const acts = c9Actions();
+  if (!s9.dailyText) s9.dailyText = c9DailyText();
   s9.card = {
     kind: 'daily',
     title: `${s9.year} 年 · ${c9Season()}`,
-    text: c9DailyText(),
+    text: s9.dailyText || c9DailyText(),
     ask: '',
     actions: acts,
-    scene: null
+    scene: null,
+    mark: s9.dailyMark || c9LocalMark()
   };
+}
+
+/* 本地念想：一句话，将来进账本 */
+function c9LocalMark() {
+  const a = s9.age;
+  const pool = [
+    `你学会了在别人说话时不插嘴。`,
+    `那一年你第一次觉得家里小。`,
+    `你记住了母亲手上的皂角味。`,
+    `你开始怕过年。`,
+    `你发现自己走路的样子像父亲。`,
+    `有一句话你到死也没说出口。`,
+    `你数过一次家里的碗，比人少一只。`,
+    `那年冬天你睡得特别多。`
+  ];
+  return pool[a % pool.length];
 }
 
 function c9Season() { return ['春', '夏', '秋', '冬'][(s9.year - 1) % 4]; }
@@ -237,6 +320,15 @@ function c9NextScene() {
     return sc;
   }
   return null;
+}
+
+/* 这一年会不会是一段 AI 插曲：约三成，且不在头三年、不在寿限前 */
+function c9WantInterlude() {
+  if (!s9.interludes || s9.interludes.length >= 6) return false;
+  if (s9.age < 8) return false;
+  if (s9.age > s9.deadline - 6) return false;
+  if (s9.lastWasInterlude) return false;
+  return Math.random() < 0.32;
 }
 
 /* 日常年的叙事：从这一家的处境里长出来 */
@@ -381,6 +473,21 @@ function c9Commit() {
 
   // 结案
   if (card.scene && !s9.seen.includes(card.scene.id)) s9.seen.push(card.scene.id);
+  if (card.scene && card.scene.title) {
+    s9.seenTitles = s9.seenTitles || [];
+    s9.seenTitles.push(card.scene.title);
+    if (s9.seenTitles.length > 20) s9.seenTitles.shift();
+  }
+  if (card.ai) {
+    s9.interludes = s9.interludes || [];
+    s9.interludes.push(card.title);
+  }
+  s9.years = s9.years || [];
+  s9.years.push(card.title);
+  s9.yearlyLog = s9.yearlyLog || [];
+  s9.yearlyLog.push({ age: s9.age, text: String(card.text || '').slice(0, 40) });
+  if (s9.yearlyLog.length > 12) s9.yearlyLog.shift();
+  if (card.mark) { s9.marks = s9.marks || []; s9.marks.push(card.mark); }
 
   s9.outcome = {
     year: s9.year, age: s9.age,
@@ -390,6 +497,7 @@ function c9Commit() {
   };
   s9.picks = [];
   s9.card = null;
+  s9.dailyText = ''; s9.dailyMark = ''; s9.prepared = false;
 
   // 时间推进
   const keep = s9.outcome;
@@ -543,6 +651,7 @@ function c9Reasons() {
 function c9Renew(i) {
   const r = c9Reasons()[i];
   if (!r) return;
+  s9.interludes = [];
   s9.renewals.push({ age: s9.age, text: r.text });
   s9.deadline = s9.age + 7 + Math.floor(Math.random() * 5);
   s9.body = Math.max(14, Math.round(s9.body * 0.55));
