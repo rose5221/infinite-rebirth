@@ -279,6 +279,14 @@ function c9End() {
       <div class="gatesum">
       ${g14Summary().map(g => `<div class="gsrow ${g.done ? 'ok' : 'no'}"><span>${g.age} 岁</span><b>${c9Esc(g.name)}</b><i>${g.done ? '过了' : '没过'}</i></div>`).join('')}
       </div></div>` : ''}
+    ${(typeof t15Summary==='function') ? (()=>{const T=t15Summary(); return T.rows.length?`<div class="card timecard">
+      <h3 style="font:400 17px/1.6 var(--serif)">这一生，时间给了谁</h3>
+      <div class="trows">
+      ${T.rows.map(r=>`<div class="trow"><span class="tn">${c9Esc(r.name)}</span><div class="tbar"><i class="${r.k}" style="width:${Math.max(4, Math.round(r.v / Math.max(1,T.total) * 100))}%"></i></div><b>${r.v} 年</b></div>`).join('')}
+      </div>
+      <p class="small" style="margin-top:12px;font-family:var(--serif);font-size:15px">${c9Esc(typeof t15Verdict==='function'?t15Verdict():'')}</p>
+    </div>`:'';})() : ''}
+
     <div class="card"><h3 style="font:400 17px/1.6 var(--serif)">最后的样子</h3>
       <dl class="kv" style="margin-top:8px">
         <dt>活到</dt><dd>${s9.age} 岁</dd>

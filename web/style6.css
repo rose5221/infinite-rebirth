@@ -443,3 +443,15 @@ textarea{min-height:96px;resize:vertical}
 .gsrow i{font:9px/1.4 var(--mono);font-style:normal;text-align:right;color:var(--ink-faint)}
 .gsrow.ok i{color:var(--blue)}
 .gsrow.no b{color:var(--ink-faint)}
+
+/* v15 时间账本 */
+.timecard .trows{display:grid;gap:9px;margin-top:12px}
+.trow{display:grid;grid-template-columns:68px 1fr 46px;gap:10px;align-items:center}
+.trow .tn{font-size:13px;color:var(--ink)}
+.tbar{height:3px;background:var(--rule)}
+.tbar i{display:block;height:3px;background:var(--ink)}
+.tbar i.give{background:var(--blue)}
+.tbar i.work{background:var(--ink-soft)}
+.tbar i.alone{background:var(--red)}
+.tbar i.rest{background:var(--ink-faint)}
+.trow b{font:10px/1.5 var(--mono);text-align:right;font-weight:400;color:var(--ink-soft)}

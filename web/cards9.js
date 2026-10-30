@@ -114,6 +114,7 @@ function c9Make(book, name) {
   });
   if (typeof w10Init === 'function') w10Init(book);
   if (typeof p12Init === 'function') p12Init(book);
+  if (typeof t15Init === 'function') t15Init();
   if (typeof o11Init === 'function') {
     o11Init(book);
     s9.seed = O11.seed;
@@ -472,6 +473,7 @@ function c9Commit() {
 
   for (const k of s9.picks) {
     const act = card.actions[k];
+    if (typeof t15Log === 'function') t15Log(act, card);
     if (act.plot) {
       // 剧情年：三个选项各带效果
       const e = act.plot.eff || {};
@@ -533,9 +535,14 @@ function c9Commit() {
 
   // 断粮
   if (s9.grain <= 0) {
-    s9.body -= 9; s9.heart -= 5;
+    s9.body = Math.max(1, s9.body - 9);
+    s9.heart = Math.max(0, s9.heart - 5);
     s9.grain = 0;
   }
+
+  s9.body = Math.max(1, Math.min(100, s9.body));
+  s9.heart = Math.max(0, Math.min(100, s9.heart));
+  s9.hand = Math.max(0, Math.min(10, s9.hand));
 
   // 手会自然长一点（做过活的人手上有东西）
   if (s9.age > 14 && s9.age < 55) s9.hand = Math.min(10, s9.hand + 0.03);

@@ -1,9 +1,9 @@
 /* Offline-first SW: network-first for code/HTML, cache-first for media */
-const CACHE = 'rebirth-v14-1';
+const CACHE = 'rebirth-v15-1';
 const ASSETS = [
   './index.html', './style6.css',
   './worlds6.js', './story6.js', './linefield6.js',
-  './cost13.js', './gate14.js', './priv12.js', './orch11.js', './web10.js', './ai9.js', './cards9.js', './uic9.js',
+  './cost13.js', './gate14.js', './time15.js', './priv12.js', './orch11.js', './web10.js', './ai9.js', './cards9.js', './uic9.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'
 ];
 self.addEventListener('install', e => {
