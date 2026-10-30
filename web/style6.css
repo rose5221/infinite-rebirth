@@ -421,3 +421,6 @@ textarea{min-height:96px;resize:vertical}
 .blindbox .bt{font:10px/1.5 var(--mono);letter-spacing:.12em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:8px}
 .blindbox .brow2{font:13px/1.75 var(--sans);margin:6px 0}
 .blindbox .brow2 b{font-weight:600}
+
+/* v13 赌注标签 */
+

@@ -5,6 +5,7 @@
 function c9Esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+function c13Esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 function c9Paras(t) {
   const parts = String(t || '').match(/[^。！？]{1,90}[。！？]?/g) || [t];
   const out = []; let cur = '';
@@ -168,7 +169,7 @@ function c9Card() {
       </div>`}
 
     <button class="btn primary" style="margin-top:16px" onclick="c9Commit()">过完这一年</button>
-    <p class="small faint" style="margin-top:8px">${card.kind === 'plot' ? '选一个。不能反悔。' : '心力用不完也没关系，剩下的会变成休息。'}</p>
+    <p class="small faint" style="margin-top:8px">${card.kind === 'plot' ? '三个选择，各自要付一样不同的东西。选一个，不能反悔。' : '心力用不完也没关系，剩下的会变成休息。'}</p>
   </div>`;
 }
 
