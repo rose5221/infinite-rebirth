@@ -115,6 +115,7 @@ function c9Make(book, name) {
   if (typeof w10Init === 'function') w10Init(book);
   if (typeof p12Init === 'function') p12Init(book);
   if (typeof t15Init === 'function') t15Init();
+  if (typeof e16Plant === 'function') e16Plant();
   if (typeof o11Init === 'function') {
     o11Init(book);
     s9.seed = O11.seed;
@@ -269,6 +270,12 @@ function c9BuildCard() {
       s9Save();
       return;
     }
+  }
+
+  // 跨世回声
+  if (typeof e16Moment === 'function') {
+    const m = e16Moment();
+    if (m) { s9.card = m; s9Save(); return; }
   }
 
   // 关系层撞见
@@ -443,6 +450,22 @@ function c9Commit() {
   if (!s9.picks.length) { c9Toast('总得选一样'); return; }
 
   // 关口卡：只选一个，结果单独处理
+  if (card.kind === 'echo') {
+    const act = card.actions[s9.picks[0]];
+    s9.outcome = {
+      year: s9.year, age: s9.age, title: card.title,
+      said: [act.plot.outcome], d: {}, mark: card.mark || ''
+    };
+    s9.picks = []; s9.card = null;
+    if (card.mark) { s9.marks = s9.marks || []; s9.marks.push(card.mark); }
+    s9.age += 1; s9.year += 1;
+    for (const p of s9.family) if (p.alive) p.age += 1;
+    s9.effort = c9Effort();
+    s9.screen = 'result';
+    s9Save(); c9Render();
+    return;
+  }
+
   if (card.kind === 'gate') {
     const r = g14Apply(card.gate, s9.picks[0]);
     const year = s9.year, age = s9.age;

@@ -146,7 +146,14 @@ function c9Card() {
       ${card.ask ? `<div class="ask">${c9Esc(card.ask)}</div>` : ''}
     </div>
 
-    ${card.kind === 'gate' ? `
+    ${card.kind === 'echo' ? `
+      <div class="echobox"><div class="elabel">说不清为什么，但你觉得眼熟</div></div>
+      <div class="choices" style="margin-top:10px">
+        ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
+          <span class="cn">${['一','二','三'][i]}</span>
+          <span class="ct"><b>${c9Esc(a.name)}</b><span class="cd">${c9Esc(a.desc)}</span><span class="ch">${c9Esc(a.hint)}</span></span>
+        </button>`).join('')}
+      </div>` : card.kind === 'gate' ? `
       <div class="gatebox">
         <div class="glabel">第 ${g14Index(card.gate)} 关 · ${card.gate.age} 岁</div>
         ${s9.passed && s9.passed.length ? `<div class="gprev">已经过：${g14Summary().filter(x=>x.done).map(x=>x.name).join(' · ')}</div>` : ''}
@@ -180,8 +187,8 @@ function c9Card() {
         }).join('')}
       </div>`}
 
-    <button class="btn primary" style="margin-top:16px" onclick="c9Commit()">${card.kind === 'gate' ? '就这么定' : '过完这一年'}</button>
-    <p class="small faint" style="margin-top:8px">${card.kind === 'gate' ? '这一关过了，就再也不会回来。' : card.kind === 'plot' ? '三个选择，各自要付一样不同的东西。选一个，不能反悔。' : '心力用不完也没关系，剩下的会变成休息。'}</p>
+    <button class="btn primary" style="margin-top:16px" onclick="c9Commit()">${card.kind === 'gate' ? '就这么定' : card.kind === 'echo' ? '就到这里' : '过完这一年'}</button>
+    <p class="small faint" style="margin-top:8px">${card.kind === 'gate' ? '这一关过了，就再也不会回来。' : card.kind === 'echo' ? '你大概永远不会知道这是为什么。' : card.kind === 'plot' ? '三个选择，各自要付一样不同的东西。选一个，不能反悔。' : '心力用不完也没关系，剩下的会变成休息。'}</p>
   </div>`;
 }
 
@@ -268,6 +275,9 @@ function c9EndIt() { c9GiveUp(); c9Render(); }
 
 /* ---------- 结局 ---------- */
 function c9End() {
+  if (!s9.harvested && typeof e16Harvest === 'function' && s9.time) {
+    try { e16Harvest(); s9.harvested = true; s9Save(); } catch (e) {}
+  }
   const L = c9Ledger();
   return `<div class="view">
     <div class="eyebrow">The end</div>
@@ -320,6 +330,8 @@ function c9End() {
       <p class="small muted">${L.alive.length ? '床头站着人。你说了一句什么，没人听清。' : '床边没有人。屋里有灶灰的味道。'}</p>
     </div>
 
+    ${(typeof e16LifeIndex==='function' && e16LifeIndex()>0) ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这是第 ${e16LifeIndex()} 世</h3>
+      <p class="small muted">你留下的东西，会跟着你去下一世。</p></div>` : ''}
     <div class="notice">这一世走完了。换一种活法，是另一世。</div>
     <button class="btn primary" onclick="c9Again()">再活一次</button>
     <button class="btn ghost" style="margin-top:10px" onclick="c9Go('pick')">去活别人</button>

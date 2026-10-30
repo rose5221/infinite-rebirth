@@ -455,3 +455,7 @@ textarea{min-height:96px;resize:vertical}
 .tbar i.alone{background:var(--red)}
 .tbar i.rest{background:var(--ink-faint)}
 .trow b{font:10px/1.5 var(--mono);text-align:right;font-weight:400;color:var(--ink-soft)}
+
+/* v16 回声 */
+.echobox{margin:16px 0 2px;padding:8px 0;border-top:1px solid var(--blue-pale);border-bottom:1px solid var(--blue-pale)}
+.elabel{font:10px/1.5 var(--mono);letter-spacing:.14em;color:var(--blue);text-transform:uppercase}
