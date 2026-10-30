@@ -214,7 +214,7 @@ function showArchive(){
   <button class="btn ghost" style="margin-top:8px" onclick="document.getElementById('modal').remove()">关闭</button>`);
 }
 function showSettings6(){
-  const aiOn=!!(state.apiKey&&state.ai!==false);
+  const aiOn=state.ai!==false;
   sheet6(`<h2>设置</h2>
   <div class="notice">不外传。密钥只存在这台设备的浏览器里，请求直接发往 DeepSeek 官方接口。</div>
   <div style="margin:14px 0"><label class="small muted">DeepSeek API Key</label>
@@ -239,7 +239,7 @@ function saveSettings6(){
   if(en)state.english=en.checked;
   AI6.lastError='';
   save();document.getElementById('modal').remove();render(true);
-  toast(state.apiKey?'已保存 · 下一段开始由 AI 续写':'已保存 · 离线剧情');
+  toast(state.apiKey&&state.ai!==false?'已保存 · 下一段开始由 AI 续写':'已保存 · 离线剧情');
 }
 function wipe6(){
   if(!confirm('删除这台设备上的全部进度和密钥？'))return;
