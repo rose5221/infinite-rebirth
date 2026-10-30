@@ -386,7 +386,9 @@ function c9Toast(t) {
 }
 
 (function c9Boot() {
-  s9Load();
+  const fresh = /(?:^|[?&])new=1/.test(location.search);
+  if (fresh) { try { localStorage.removeItem('one_card_v9'); } catch (e) {} }
+  else s9Load();
   if (s9.dead) s9.screen = 'end';
   else if (s9.screen === 'wake' && s9.family && s9.family.length) s9.screen = 'card';
   c9Render();
