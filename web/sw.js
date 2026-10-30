@@ -1,9 +1,9 @@
 /* Offline-first SW: network-first for code/HTML, cache-first for media */
-const CACHE = 'rebirth-v7-1';
+const CACHE = 'rebirth-v8-1';
 const ASSETS = [
   './index.html', './style6.css',
   './worlds6.js', './story6.js', './linefield6.js',
-  './play7.js', './extra7.js', './ui7.js',
+  './board8.js', './ui8.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'
 ];
 self.addEventListener('install', e => {
