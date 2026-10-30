@@ -99,6 +99,8 @@ function c9Start() {
 function c9Go(s) { s9.screen = s; c9Render(); }
 
 /* ---------- 一年一张卡 ---------- */
+function g14Index(g) { const L = g14List(); return L.findIndex(x => x.id === g.id) + 1; }
+
 function c9Card() {
   if (s9.dead) return c9End();
   if (s9.outcome) return c9Result();
@@ -144,7 +146,17 @@ function c9Card() {
       ${card.ask ? `<div class="ask">${c9Esc(card.ask)}</div>` : ''}
     </div>
 
-    ${card.kind === 'plot' ? `
+    ${card.kind === 'gate' ? `
+      <div class="gatebox">
+        <div class="glabel">第 ${g14Index(card.gate)} 关 · ${card.gate.age} 岁</div>
+        ${s9.passed && s9.passed.length ? `<div class="gprev">已经过：${g14Summary().filter(x=>x.done).map(x=>x.name).join(' · ')}</div>` : ''}
+      </div>
+      <div class="choices" style="margin-top:10px">
+        ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
+          <span class="cn">${['一','二','三'][i]}</span>
+          <span class="ct"><b>${c9Esc(a.name)}</b><span class="cd">${c9Esc(a.desc)}</span><span class="ch">${c9Esc(a.hint)}</span></span>
+        </button>`).join('')}
+      </div>` : card.kind === 'plot' ? `
       <div class="scene-meta" style="margin-top:6px">这一年只做这一个决定</div>
       <div class="choices" style="margin-top:8px">
         ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
@@ -168,8 +180,8 @@ function c9Card() {
         }).join('')}
       </div>`}
 
-    <button class="btn primary" style="margin-top:16px" onclick="c9Commit()">过完这一年</button>
-    <p class="small faint" style="margin-top:8px">${card.kind === 'plot' ? '三个选择，各自要付一样不同的东西。选一个，不能反悔。' : '心力用不完也没关系，剩下的会变成休息。'}</p>
+    <button class="btn primary" style="margin-top:16px" onclick="c9Commit()">${card.kind === 'gate' ? '就这么定' : '过完这一年'}</button>
+    <p class="small faint" style="margin-top:8px">${card.kind === 'gate' ? '这一关过了，就再也不会回来。' : card.kind === 'plot' ? '三个选择，各自要付一样不同的东西。选一个，不能反悔。' : '心力用不完也没关系，剩下的会变成休息。'}</p>
   </div>`;
 }
 
@@ -196,6 +208,10 @@ function c9Result() {
     <div class="gains">${chips.map(c => `<span class="gain ${c.v > 0 ? 'good' : 'bad'}">${c.k} ${c.v > 0 ? '+' : ''}${c.v}</span>`).join('')}</div>
 
     ${s9.card && s9.card.mark ? `<p class="small muted" style="margin-top:12px">「${c9Esc(s9.card.mark)}」</p>` : ''}
+    ${(o.gate) ? `<div class="gateout ${o.gate.passed ? 'ok' : 'no'}">
+      <div class="gt">${o.gate.passed ? '过了' : '没过'} · ${c9Esc(o.gate.title)}</div>
+      ${o.gate.line ? `<p class="small" style="margin:6px 0 0">${c9Esc(o.gate.line)}</p>` : ''}
+    </div>` : ''}
     ${(s9.pendingPriv && s9.pendingPriv.length) ? `<div class="blindbox">
       <div class="bt">你不在的那些时候</div>
       ${s9.pendingPriv.map(h => `<div class="brow2"><b>${c9Esc(h.name)}</b> · ${c9Esc(h.act)}${h.line ? `<br><span class="faint">${c9Esc(h.line)}</span>` : ''}</div>`).join('')}
@@ -259,6 +275,10 @@ function c9End() {
     <p class="subtitle">${c9Esc(s9.name)} · ${c9Esc(s9.book)} · ${c9Esc(s9.why || '一生')}</p>
     <canvas data-field="wide" style="height:76px;width:100%;margin:12px 0 16px"></canvas>
 
+    ${(typeof g14Summary==='function') ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一生过了哪几关</h3>
+      <div class="gatesum">
+      ${g14Summary().map(g => `<div class="gsrow ${g.done ? 'ok' : 'no'}"><span>${g.age} 岁</span><b>${c9Esc(g.name)}</b><i>${g.done ? '过了' : '没过'}</i></div>`).join('')}
+      </div></div>` : ''}
     <div class="card"><h3 style="font:400 17px/1.6 var(--serif)">最后的样子</h3>
       <dl class="kv" style="margin-top:8px">
         <dt>活到</dt><dd>${s9.age} 岁</dd>

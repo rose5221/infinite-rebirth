@@ -260,7 +260,17 @@ function c9BuildCard() {
   const a = s9.age;
   s9.dailyText = ''; s9.dailyMark = '';
 
-  // 关系层撞见优先
+  // 关口最优先
+  if (typeof g14Due === 'function') {
+    const g = g14Due();
+    if (g) {
+      s9.card = g14Card(g);
+      s9Save();
+      return;
+    }
+  }
+
+  // 关系层撞见
   if (s9.pendingOverhear) {
     const o = s9.pendingOverhear;
     s9.pendingOverhear = null;
@@ -430,6 +440,32 @@ function c9Commit() {
   const card = s9.card;
   if (!card) return;
   if (!s9.picks.length) { c9Toast('总得选一样'); return; }
+
+  // 关口卡：只选一个，结果单独处理
+  if (card.kind === 'gate') {
+    const r = g14Apply(card.gate, s9.picks[0]);
+    const year = s9.year, age = s9.age;
+    s9.outcome = {
+      year, age, title: card.title,
+      said: [],
+      d: {},
+      gate: r,
+      notes: r.notes || []
+    };
+    s9.picks = [];
+    s9.card = null;
+    // 关口占用这一年
+    s9.age += 1; s9.year += 1;
+    for (const p of s9.family) if (p.alive) p.age += 1;
+    s9.effort = c9Effort();
+    if (typeof o11YearTick === 'function') o11YearTick();
+    if (typeof w10Drift === 'function') w10Drift();
+    if (typeof p12Tick === 'function') { const hh = p12Tick(); if (hh) { p12Apply(hh); if (!s9.pendingPriv) s9.pendingPriv = hh; } }
+    s9.screen = 'result';
+    s9Save();
+    c9Render();
+    return;
+  }
 
   const said = [];
   let dBody = 0, dHeart = 0, dHand = 0, dCoin = 0, dGrain = 0;
