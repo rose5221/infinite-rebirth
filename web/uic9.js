@@ -304,7 +304,7 @@ function c9Sheet(html) {
 }
 function c9Book() {
   const L = c9Lex();
-  s9Sheet(`<h2>这一生</h2>
+  c9Sheet(`<h2>这一生</h2>
     <dl class="kv">
       <dt>年</dt><dd>第 ${s9.year} 年 · ${c9Season()}</dd>
       <dt>身</dt><dd>${Math.round(s9.body)}</dd>
@@ -314,6 +314,13 @@ function c9Book() {
       <dt>${L.unit}</dt><dd>${Math.round(s9.coin)}</dd>
       <dt>田</dt><dd>${s9.field} 亩</dd>
     </dl>
+    ${(typeof w10Net === 'function' && w10Net().length) ? `<hr style="border:none;border-top:1px solid var(--rule);margin:14px 0">
+      <p class="small muted" style="margin-bottom:10px">他们之间</p>
+      ${w10Net().map(e => `<div class="netrow">
+        <span class="netpair">${c9Esc(e.a)} — ${c9Esc(e.b)}</span>
+        <span class="netbar"><i style="width:${Math.max(0, Math.min(100, e.close))}%"></i></span>
+        <span class="netnum">${e.unsaid >= 6 ? '话没说完' : '亲 ' + e.close}</span>
+      </div>${e.cause ? `<p class="small faint" style="margin:-2px 0 8px 0">${c9Esc(e.cause)}</p>` : ''}`).join('')}` : ''}
     <button class="btn" style="margin-top:14px" onclick="document.getElementById('c9modal').remove()">合上</button>`);
 }
 function c9Settings() {

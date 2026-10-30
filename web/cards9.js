@@ -112,6 +112,7 @@ function c9Make(book, name) {
     lastSummary: '', nextHint: '',
     years: [], yearlyLog: [], marks: [], seenTitles: [], loading: false
   });
+  if (typeof w10Init === 'function') w10Init(book);
   s9Save();
 }
 
@@ -239,11 +240,25 @@ async function c9Prepare() {
 function c9BuildCard() {
   s9.prepared = false;
   s9.aiDone = false;
+  // 关系层：这一年有没有撞见
+  if (!s9.pendingOverhear && !s9.pendingInterlude && s9.age >= 8 && typeof w10PickOverhear === 'function') {
+    const o = w10PickOverhear();
+    if (o) s9.pendingOverhear = o;
+  }
   const L = c9Lex();
   const a = s9.age;
   s9.dailyText = ''; s9.dailyMark = '';
 
-  // AI 插曲优先
+  // 关系层撞见优先
+  if (s9.pendingOverhear) {
+    const o = s9.pendingOverhear;
+    s9.pendingOverhear = null;
+    if (typeof w10MarkHeard === 'function') w10MarkHeard(o);
+    s9.card = w10ToCard(o);
+    return;
+  }
+
+  // AI 插曲
   if (s9.pendingInterlude) {
     const ai = s9.pendingInterlude;
     s9.pendingInterlude = null;
@@ -499,6 +514,14 @@ function c9Commit() {
   s9.card = null;
   s9.dailyText = ''; s9.dailyMark = ''; s9.prepared = false;
 
+  // 关系层效果
+  if (typeof w10ApplyRel === 'function') {
+    for (const k of s9.picks) {
+      const act = card.actions[k];
+      if (act && act.plot && act.plot.eff) w10ApplyRel(act.plot.eff);
+    }
+  }
+
   // 时间推进
   const keep = s9.outcome;
   c9Advance();
@@ -595,10 +618,12 @@ function c9Advance() {
   }
   s9.age = c9Self().age;
   s9.year += 1;
+  if (typeof w10Drift === 'function') w10Drift();
 
   // 老年身体下滑
   if (s9.age > 56) s9.body = Math.max(20, s9.body - Math.floor((s9.age - 56) / 14) - 1);
-  if (s9.age > 70) s9.body = Math.max(15, s9.body - 1);
+  if (s9.age > 70) s9.body = Math.max(12, s9.body - 2);
+  if (s9.age > 72) s9.hand = Math.max(1, s9.hand - 0.5);
 
   s9.effort = c9Effort();
 
