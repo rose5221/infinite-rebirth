@@ -113,6 +113,7 @@ function c9Make(book, name) {
     years: [], yearlyLog: [], marks: [], seenTitles: [], loading: false
   });
   if (typeof w10Init === 'function') w10Init(book);
+  if (typeof p12Init === 'function') p12Init(book);
   if (typeof o11Init === 'function') {
     o11Init(book);
     s9.seed = O11.seed;
@@ -651,6 +652,10 @@ function c9Advance() {
   s9.year += 1;
   if (typeof w10Drift === 'function') w10Drift();
   if (typeof o11YearTick === 'function') o11YearTick();
+  if (typeof p12Tick === 'function') {
+    const hits = p12Tick();
+    if (hits) { p12Apply(hits); s9.pendingPriv = hits; }
+  }
 
   // 老年身体下滑
   if (s9.age > 56) s9.body = Math.max(20, s9.body - Math.floor((s9.age - 56) / 14) - 1);
@@ -688,6 +693,10 @@ function c9Advance() {
     s9.year += 1;
     s9.effort = c9Effort();
     if (typeof o11YearTick === 'function') o11YearTick();
+  if (typeof p12Tick === 'function') {
+    const hits = p12Tick();
+    if (hits) { p12Apply(hits); s9.pendingPriv = hits; }
+  }
     if (typeof w10Drift === 'function') w10Drift();
     if (s9.age >= s9.deadline) break;
     skip++;

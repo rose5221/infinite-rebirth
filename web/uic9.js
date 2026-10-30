@@ -195,6 +195,11 @@ function c9Result() {
     <div class="gains">${chips.map(c => `<span class="gain ${c.v > 0 ? 'good' : 'bad'}">${c.k} ${c.v > 0 ? '+' : ''}${c.v}</span>`).join('')}</div>
 
     ${s9.card && s9.card.mark ? `<p class="small muted" style="margin-top:12px">「${c9Esc(s9.card.mark)}」</p>` : ''}
+    ${(s9.pendingPriv && s9.pendingPriv.length) ? `<div class="blindbox">
+      <div class="bt">你不在的那些时候</div>
+      ${s9.pendingPriv.map(h => `<div class="brow2"><b>${c9Esc(h.name)}</b> · ${c9Esc(h.act)}${h.line ? `<br><span class="faint">${c9Esc(h.line)}</span>` : ''}</div>`).join('')}
+      <p class="small faint" style="margin:8px 0 0">这些事你不知道是怎么开始的。你只是赶上了后面。</p>
+    </div>` : ''}
     ${s9.nextHint ? `<div class="notice" style="margin-top:14px">${c9Esc(s9.nextHint)}</div>` : ''}
 
     <button class="btn primary" style="margin-top:18px" onclick="c9NextYear()">下一年</button>
@@ -269,6 +274,9 @@ function c9End() {
 
     ${L.renew.length ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">续过 ${L.renew.length} 次命</h3>
       ${L.renew.map(r => `<p class="small" style="margin:7px 0"><span class="faint mono">${r.age} 岁</span> ${c9Esc(r.text)}</p>`).join('')}</div>` : ''}
+
+    ${(typeof p12Blind === 'function' && p12Blind().length) ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">你不知道的事</h3>
+      ${p12Blind().map(x => `<p class="small" style="margin:6px 0"><span class="faint mono">${x.age}岁</span> ${c9Esc(x.line)}</p>`).join('')}</div>` : ''}
 
     ${s9.marks && s9.marks.length ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一生留下的几句话</h3>
       ${s9.marks.slice(-6).map(x => `<p class="small" style="margin:5px 0">「${c9Esc(x)}」</p>`).join('')}</div>` : ''}
