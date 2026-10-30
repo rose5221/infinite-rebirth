@@ -113,6 +113,12 @@ function c9Make(book, name) {
     years: [], yearlyLog: [], marks: [], seenTitles: [], loading: false
   });
   if (typeof w10Init === 'function') w10Init(book);
+  if (typeof o11Init === 'function') {
+    o11Init(book);
+    s9.seed = O11.seed;
+    s9.vars = O11.vars;
+    o11ApplyVars();
+  }
   s9Save();
 }
 
@@ -331,6 +337,7 @@ function c9LocalMark() {
 function c9Season() { return ['春', '夏', '秋', '冬'][(s9.year - 1) % 4]; }
 
 function c9NextScene() {
+  if (typeof o11NextScene === 'function' && s9.seed) return o11NextScene();
   const b = STORY6[s9.book];
   if (!b) return null;
   for (const sc of b.main) {
@@ -469,6 +476,12 @@ function c9Commit() {
   dGrain -= alive.length * 1.15;
   dCoin -= alive.length * 26;
 
+  // 身子到底线时，先伤心，不直接垮
+  if (s9.body + dBody < 25 && dBody < 0) {
+    const over = 25 - (s9.body + dBody);
+    dBody = Math.round(dBody + over * 0.6);
+    dHeart -= Math.round(over * 0.8);
+  }
   s9.body = Math.max(1, Math.min(100, s9.body + dBody));
   s9.heart = Math.max(0, Math.min(100, s9.heart + dHeart));
   s9.hand = Math.max(0, Math.min(10, s9.hand + dHand));
@@ -492,6 +505,7 @@ function c9Commit() {
 
   // 结案
   if (card.scene && !s9.seen.includes(card.scene.id)) s9.seen.push(card.scene.id);
+  if (card.kind === 'plot') s9.sceneGap = 0;
   if (card.scene && card.scene.title) {
     s9.seenTitles = s9.seenTitles || [];
     s9.seenTitles.push(card.scene.title);
@@ -636,6 +650,7 @@ function c9Advance() {
   s9.age = c9Self().age;
   s9.year += 1;
   if (typeof w10Drift === 'function') w10Drift();
+  if (typeof o11YearTick === 'function') o11YearTick();
 
   // 老年身体下滑
   if (s9.age > 56) s9.body = Math.max(20, s9.body - Math.floor((s9.age - 56) / 14) - 1);
@@ -672,6 +687,8 @@ function c9Advance() {
     s9.age = c9Self().age;
     s9.year += 1;
     s9.effort = c9Effort();
+    if (typeof o11YearTick === 'function') o11YearTick();
+    if (typeof w10Drift === 'function') w10Drift();
     if (s9.age >= s9.deadline) break;
     skip++;
   }

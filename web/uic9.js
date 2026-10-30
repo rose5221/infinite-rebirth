@@ -60,7 +60,12 @@ function c9Pick() {
   </div>`;
 }
 
-function c9Choose(i) { s9.book = STORY_ORDER[i]; s9.screen = 'name'; c9Render(); }
+function c9Choose(i) {
+  s9.book = STORY_ORDER[i];
+  if (typeof o11Preview === 'function') { O11.vars = null; o11Preview(); }
+  s9.screen = 'name';
+  c9Render();
+}
 
 function c9NamePage() {
   const b = STORY6[s9.book];
@@ -70,6 +75,9 @@ function c9NamePage() {
     <p class="subtitle">${c9Esc(b.subtitle)}</p>
     <canvas data-field="sigil" style="height:78px;width:100%;margin:8px 0 14px"></canvas>
     <div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一本记的是</h3><p class="small">${c9Esc(b.through)}</p></div>
+    ${typeof o11VarText === 'function' && o11VarText() ? `<div class="card" style="border-color:var(--blue)"><h3 style="font:400 17px/1.6 var(--serif)">这一局</h3>
+      <p class="small" style="margin:6px 0">${c9Esc(o11VarText())}</p>
+      <p class="small faint">每一局的家里都不一样。换一局，人会变，事也会变。</p></div>` : ''}
     <div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一家的人</h3>
       ${b.cast.map(c => `<p class="small" style="margin:5px 0"><b>${c9Esc(c.name)}</b> · 你的${c9Esc(c.tag)}，${c9Esc(c.role)}</p>`).join('')}
     </div>
@@ -313,6 +321,7 @@ function c9Book() {
       <dt>${L.grain}</dt><dd>${s9.grain.toFixed(1)}</dd>
       <dt>${L.unit}</dt><dd>${Math.round(s9.coin)}</dd>
       <dt>田</dt><dd>${s9.field} 亩</dd>
+      ${s9.seed ? `<dt>这一局</dt><dd class="mono" style="font-size:11px">${s9.seed}</dd>` : ''}
     </dl>
     ${(typeof w10Net === 'function' && w10Net().length) ? `<hr style="border:none;border-top:1px solid var(--rule);margin:14px 0">
       <p class="small muted" style="margin-bottom:10px">他们之间</p>
