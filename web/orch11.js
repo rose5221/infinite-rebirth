@@ -48,10 +48,14 @@ function o11Preview() {
 }
 
 function o11Init(book) {
-  if (!O11.vars) o11Preview();
+  // 每一世都必须重新掷：种子、三个开局变量、抽选池预算
+  O11.seed = Math.floor(Math.random() * 900000000) + 100000000;
+  O11.rnd = o11Rng(O11.seed);
+  O11.vars = o11RollVars(O11.rnd);
   O11.lastSceneAge = -99;
   O11.gap = 0;
   O11.poolLeft = undefined;
+  O11.usedGroups = {};
 
   const b = STORY6[book];
   // 主线 + 支线一起进池：支线是这一局可遇不可求的部分
@@ -135,16 +139,37 @@ function o11NextScene() {
   }
   if (!cands.length) return null;
 
+  // 同类冷却：最近出过的 arc，这一轮直接排除
+  const recentArcs = (s9.recentArcs || []).slice(-3);
+  const fresh = cands.filter(sc => !recentArcs.includes(sc.arc));
+  const pool2 = fresh.length >= 2 ? fresh : cands;
+
   // 3. 池子有预算：一生只出 5-7 段支线戏，剩下的这辈子遇不到
-  if (O11.poolLeft === undefined) O11.poolLeft = 7 + Math.floor(O11.rnd() * 4);
+  if (O11.poolLeft === undefined) O11.poolLeft = 10 + Math.floor(O11.rnd() * 6);
   if (O11.poolLeft <= 0) return null;
 
   const must = (s9.sceneGap || 0) >= 3;
   if (!must && O11.rnd() > 0.55) return null;
 
+  // 用 lorebook 触发引擎选：按这一年的情境文字 + 冷却 + 互斥
+  let picked = null;
+  if (typeof l22PickScene === 'function') {
+    const ctx = [];
+    // 当前处境作为扫描文本
+    if (s9.memories && s9.memories.length) {
+      ctx.push(s9.memories.slice(-2).map(m => m.title + ' ' + String(m.text || '').slice(0, 40)).join(' '));
+    }
+    const alive = (s9.family || []).filter(p => p.alive && !p.away).map(p => p.name + p.tag).join(' ');
+    ctx.push(alive);
+    ctx.push(c9Lex().place);
+    ctx.push((s9.threads || []).filter(t => t.open).map(t => t.text).join(' '));
+    picked = l22PickScene(pool2, ctx, s9.year);
+  }
+  if (!picked) picked = pool2[Math.floor(O11.rnd() * pool2.length)];
+
   O11.poolLeft--;
   s9.poolLeft = O11.poolLeft;
-  return cands[Math.floor(O11.rnd() * cands.length)];
+  return picked;
 }
 
 /* ---------- 变量带来的效果 ---------- */

@@ -190,7 +190,7 @@ function c9Start() {
 function c9Go(s) { s9.screen = s; c9Render(); }
 
 /* ---------- 一年一张卡 ---------- */
-function g14Index(g) { const L = g14List(); return L.findIndex(x => x.id === g.id) + 1; }
+function g14Index(g) { const L = (typeof g21List==='function')?g21List():(typeof g14List==='function'?g14List():[]); return L.findIndex(x => x.id === g.id) + 1; }
 
 function c9Card() {
   if (s9.dead) return c9End();
@@ -261,7 +261,7 @@ function c9Card() {
       </div>` : card.kind === 'gate' ? `
       <div class="gatebox">
         <div class="glabel">第 ${g14Index(card.gate)} 关 · ${card.gate.age} 岁</div>
-        ${s9.passed && s9.passed.length ? `<div class="gprev">已经过：${g14Summary().filter(x=>x.done).map(x=>x.name).join(' · ')}</div>` : ''}
+        ${s9.passed && s9.passed.length ? `<div class="gprev">已经过：${((typeof g21Summary==='function')?g21Summary():g14Summary()).filter(x=>x.done).map(x=>x.name).join(' · ')}</div>` : ''}
       </div>
       <div class="choices" style="margin-top:10px">
         ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
@@ -392,7 +392,7 @@ function c9End() {
 
     ${(typeof g14Summary==='function') ? `<div class="card"><h3 style="font:400 17px/1.6 var(--serif)">这一生过了哪几关</h3>
       <div class="gatesum">
-      ${g14Summary().map(g => `<div class="gsrow ${g.done ? 'ok' : 'no'}"><span>${g.age} 岁</span><b>${c9Esc(g.name)}</b><i>${g.done ? '过了' : '没过'}</i></div>`).join('')}
+      ${((typeof g21Summary==='function')?g21Summary():g14Summary()).map(g => `<div class="gsrow ${g.done ? 'ok' : 'no'}"><span>${g.age} 岁</span><b>${c9Esc(g.name)}</b><i>${g.done ? '过了' : '没过'}</i></div>`).join('')}
       </div></div>` : ''}
     ${(typeof t15Summary==='function') ? (()=>{const T=t15Summary(); return T.rows.length?`<div class="card timecard">
       <h3 style="font:400 17px/1.6 var(--serif)">这一生，时间给了谁</h3>

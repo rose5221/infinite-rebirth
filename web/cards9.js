@@ -277,12 +277,11 @@ function c9BuildCard() {
   }
 
   // 关口最优先
-  if (typeof g14Due === 'function') {
-    const g = g14Due();
+  if (typeof g21Due === 'function') {
+    const g = g21Due();
     if (g) {
-      s9.card = g14Card(g);
-      s9Save();
-      return;
+      const c = g21Card(g);
+      if (c) { s9.card = c; s9Save(); return; }
     }
   }
 
@@ -490,7 +489,7 @@ function c9Commit() {
   }
 
   if (card.kind === 'gate') {
-    const r = g14Apply(card.gate, s9.picks[0]);
+    const r = g21Apply(card.gate, card.variant, s9.picks[0]);
     const year = s9.year, age = s9.age;
     s9.outcome = {
       year, age, title: card.title,
@@ -595,7 +594,12 @@ function c9Commit() {
 
   // 结案
   if (card.scene && !s9.seen.includes(card.scene.id)) s9.seen.push(card.scene.id);
-  if (card.kind === 'plot') s9.sceneGap = 0;
+  if (card.kind === 'plot') {
+    s9.sceneGap = 0;
+    s9.recentArcs = s9.recentArcs || [];
+    if (card.scene && card.scene.arc) s9.recentArcs.push(card.scene.arc);
+    if (s9.recentArcs.length > 6) s9.recentArcs.shift();
+  }
   if (card.scene && card.scene.title) {
     s9.seenTitles = s9.seenTitles || [];
     s9.seenTitles.push(card.scene.title);
