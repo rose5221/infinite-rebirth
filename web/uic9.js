@@ -17,7 +17,7 @@ function c9Paras(t) {
 function c9Render(keep) {
   const y = keep ? window.scrollY : 0;
   stopFields();
-  const map = { wake: c9Wake, pick: c9Pick, name: c9NamePage, card: c9Card, result: c9Result, renew: c9RenewPage, end: c9End };
+  const map = { wake: c9Wake, pick: c9Pick, lore: c9Lore, name: c9NamePage, card: c9Card, result: c9Result, renew: c9RenewPage, end: c9End, shop: c9Shop };
   document.getElementById('app').innerHTML = c9Top() + (map[s9.screen] || c9Wake)();
   paintFields();
   if (keep) requestAnimationFrame(() => window.scrollTo(0, y)); else window.scrollTo(0, 0);
@@ -27,7 +27,9 @@ function c9Top() {
   return `<div class="top">
     <div class="brand"><b>此世</b><span class="dot">·</span><span class="mono" style="font-size:11px;letter-spacing:.12em">一生</span></div>
     <div style="display:flex;gap:6px">
+      <button class="icon" onclick="c9PeopleSheet()">人</button>
       <button class="icon" onclick="c9Book()">账</button>
+      ${(s9.screen === 'card' || s9.screen === 'shop') ? `<button class="icon" onclick="c9Go('shop')">铺子</button>` : ``}
       <button class="icon" onclick="c9Settings()">设置</button>
     </div>
   </div>`;
@@ -64,7 +66,90 @@ function c9Pick() {
 function c9Choose(i) {
   s9.book = STORY_ORDER[i];
   if (typeof o11Preview === 'function') { O11.vars = null; o11Preview(); }
+  s9.screen = 'lore';
+  c9Render();
+}
+
+function c9Lore() {
+  if (typeof l17Page === 'function') return l17Page();
+  return c9NamePage();
+}
+
+function c9StartFromLore() {
+  if (typeof o11Preview === 'function') { O11.vars = null; o11Preview(); }
   s9.screen = 'name';
+  c9Render();
+}
+
+function c9Shop() {
+  const S = SHOP19[s9.book];
+  if (!S) return '';
+  const pill = sh19PillPrice();
+  const canPill = s9.coin >= pill;
+  return `<div class="view">
+    <div class="eyebrow">Shop</div>
+    <h1 class="title">${c9Esc(S.name)}</h1>
+    <p class="subtitle">${c9Esc(S.keeper)}。${c9Esc(S.line)}</p>
+
+    <div class="row" style="margin:14px 0">
+      <span class="small muted">身上有</span>
+      <span class="mono small">${c9Lex().unit} ${Math.round(s9.coin)}</span>
+    </div>
+
+    <div class="card" style="border-color:${canPill ? 'var(--blue)' : 'var(--rule)'}">
+      <div class="row"><h3 style="font:400 18px/1.5 var(--serif)">${c9Esc(S.pill.name)}</h3>
+        <span class="mono">${pill.toLocaleString()}</span></div>
+      <p class="small muted">${c9Esc(S.pill.desc)}</p>
+      <p class="small faint">寿限 ${s9.deadline} 岁 · 已买 ${s9.shop ? s9.shop.bought : 0} 次 · 每买一次翻倍</p>
+      <button class="btn primary" style="margin-top:10px" ${canPill ? '' : 'disabled'} onclick="c9BuyPill()">买</button>
+      ${canPill ? '' : `<p class="small faint" style="margin-top:8px">还差 ${(pill - s9.coin).toLocaleString()}。</p>`}
+    </div>
+
+    <div class="card">
+      <div class="row"><h3 style="font:400 17px/1.5 var(--serif)">${c9Esc(S.heal.name)}</h3><span class="mono">120</span></div>
+      <p class="small muted">${c9Esc(S.heal.desc)}</p>
+      <button class="btn ghost" style="margin-top:8px" ${s9.coin < 120 ? 'disabled' : ''} onclick="c9BuyHeal()">买</button>
+    </div>
+
+    <div class="scene-meta" style="margin-top:18px">送人的东西</div>
+    ${S.gifts.map((g, i) => `<div class="frow">
+      <div class="row"><b>${c9Esc(g.name)}</b><span class="mono small">${g.cost}</span></div>
+      <p class="small muted">${c9Esc(g.why)}</p>
+      <div class="row" style="margin-top:6px">
+        <span class="small faint">送给谁</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${c9Alive().filter(p => p.id !== 'self').map(p => `<button class="icon" ${s9.coin < g.cost ? 'disabled' : ''} onclick="c9BuyGift(${i},'${p.id}')">${c9Esc(p.name)}</button>`).join('') || '<span class="small faint">没有可以送的人</span>'}
+        </div>
+      </div>
+    </div>`).join('')}
+
+    <div class="grid2" style="margin-top:16px">
+      <button class="btn ghost" onclick="c9Grain('buy')">买 3 石粮（180）</button>
+      <button class="btn ghost" onclick="c9Grain('sell')">卖 2 石粮（+150）</button>
+    </div>
+
+    <button class="btn ghost" style="margin-top:18px" onclick="c9Go('card')">回去</button>
+  </div>`;
+}
+
+function c9BuyPill() {
+  const r = sh19Pill();
+  c9Toast(r.line);
+  c9Render();
+}
+function c9BuyHeal() {
+  const r = sh19Heal();
+  c9Toast(r.line);
+  c9Render();
+}
+function c9BuyGift(i, who) {
+  const r = sh19Gift(i, who);
+  c9Toast(r.line);
+  c9Render();
+}
+function c9Grain(dir) {
+  const r = sh19Grain(dir);
+  c9Toast(r.line);
   c9Render();
 }
 
@@ -152,7 +237,21 @@ function c9Card() {
       ${card.ask ? `<div class="ask">${c9Esc(card.ask)}</div>` : ''}
     </div>
 
-    ${card.kind === 'echo' ? `
+    ${card.kind === 'return' ? `
+      <div class="echobox"><div class="elabel">你不在的这几天</div></div>
+      <div class="choices" style="margin-top:10px">
+        ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
+          <span class="cn">${['一','二','三'][i]}</span>
+          <span class="ct"><b>${c9Esc(a.name)}</b><span class="cd">${c9Esc(a.desc)}</span><span class="ch">${c9Esc(a.hint)}</span></span>
+        </button>`).join('')}
+      </div>` : card.kind === 'birthday' ? `
+      <div class="echobox"><div class="elabel">真实的一年过去了</div></div>
+      <div class="choices" style="margin-top:10px">
+        ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
+          <span class="cn">${['一','二','三'][i]}</span>
+          <span class="ct"><b>${c9Esc(a.name)}</b><span class="cd">${c9Esc(a.desc)}</span><span class="ch">${c9Esc(a.hint)}</span></span>
+        </button>`).join('')}
+      </div>` : card.kind === 'echo' ? `
       <div class="echobox"><div class="elabel">说不清为什么，但你觉得眼熟</div></div>
       <div class="choices" style="margin-top:10px">
         ${card.actions.map((a, i) => `<button class="choice2 ${s9.picks.includes(i) ? 'on' : ''}" onclick="c9Toggle(${i})">
@@ -365,6 +464,22 @@ function c9Sheet(html) {
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
   document.body.appendChild(el);
 }
+function c9PeopleSheet() {
+  const fam = s9.family.filter(p => p.id !== 'self' && !p.social);
+  const soc = s9.family.filter(p => p.social);
+  const r = (typeof r20Social === 'function') ? r20Social() : null;
+  c9Sheet(`<h2>这一生的人</h2>
+    ${r ? `<p class="small muted">${c9Esc(r.note)}</p>` : ''}
+    <div class="scene-meta" style="margin-top:14px">家里</div>
+    ${fam.length ? fam.map(p => `<div class="frow"><div class="row"><b>${c9Esc(p.name)}</b><span class="mono small">${p.age}</span></div>
+      <p class="small muted">${c9Esc(p.tag)}${p.alive ? '' : ' · ' + c9Esc(p.note || '不在了')}${p.away ? ' · 走了' : ''}</p></div>`).join('') : '<p class="small muted">没有人。</p>'}
+    ${soc.length ? `<div class="scene-meta" style="margin-top:16px">外面</div>
+      ${soc.map(p => `<div class="frow"><div class="row"><b>${c9Esc(p.name)}</b><span class="mono small">${p.age}</span></div>
+        <p class="small muted">${c9Esc(p.tag)} · ${c9Esc(p.role || '')}</p>
+        ${p.trait ? `<p class="small faint">${c9Esc(p.trait)}</p>` : ''}</div>`).join('')}` : ''}
+    <button class="btn" style="margin-top:14px" onclick="document.getElementById('c9modal').remove()">合上</button>`);
+}
+
 function c9Book() {
   const L = c9Lex();
   c9Sheet(`<h2>这一生</h2>
@@ -377,6 +492,7 @@ function c9Book() {
       <dt>${L.unit}</dt><dd>${Math.round(s9.coin)}</dd>
       <dt>田</dt><dd>${s9.field} 亩</dd>
       ${s9.seed ? `<dt>这一局</dt><dd class="mono" style="font-size:11px">${s9.seed}</dd>` : ''}
+      ${(typeof r18Line==='function' && r18Line()) ? `<dt>真实时间</dt><dd class="small">${c9Esc(r18Line())}</dd>` : ''}
     </dl>
     ${(typeof w10Net === 'function' && w10Net().length) ? `<hr style="border:none;border-top:1px solid var(--rule);margin:14px 0">
       <p class="small muted" style="margin-bottom:10px">他们之间</p>
@@ -444,6 +560,7 @@ function c9Toast(t) {
   const fresh = /(?:^|[?&])new=1/.test(location.search);
   if (fresh) { try { localStorage.removeItem('one_card_v9'); } catch (e) {} }
   else s9Load();
+  if (typeof c9CatchUp === 'function' && s9.family && s9.family.length) c9CatchUp();
   if (s9.dead) s9.screen = 'end';
   else if (s9.screen === 'wake' && s9.family && s9.family.length) s9.screen = 'card';
   c9Render();

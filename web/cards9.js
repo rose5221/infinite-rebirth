@@ -116,6 +116,9 @@ function c9Make(book, name) {
   if (typeof p12Init === 'function') p12Init(book);
   if (typeof t15Init === 'function') t15Init();
   if (typeof e16Plant === 'function') e16Plant();
+  if (typeof r20Init === 'function') r20Init();
+  if (typeof r18Init === 'function') r18Init();
+  if (typeof sh19Init === 'function') sh19Init();
   if (typeof o11Init === 'function') {
     o11Init(book);
     s9.seed = O11.seed;
@@ -261,6 +264,17 @@ function c9BuildCard() {
   const L = c9Lex();
   const a = s9.age;
   s9.dailyText = ''; s9.dailyMark = '';
+
+  // 断天回归
+  if (s9.pendingReturn && typeof r18ReturnCard === 'function') {
+    const rc = r18ReturnCard();
+    if (rc) { s9.card = rc; s9Save(); return; }
+  }
+  // 生日
+  if (typeof r18Birthday === 'function') {
+    const bd = r18Birthday();
+    if (bd) { s9.card = bd; s9Save(); return; }
+  }
 
   // 关口最优先
   if (typeof g14Due === 'function') {
@@ -450,6 +464,15 @@ function c9Commit() {
   if (!s9.picks.length) { c9Toast('总得选一样'); return; }
 
   // 关口卡：只选一个，结果单独处理
+  if (card.kind === 'return' || card.kind === 'birthday') {
+    const act = card.actions[s9.picks[0]];
+    s9.outcome = { year: s9.year, age: s9.age, title: card.title, said: [act.plot.outcome], d: {} };
+    s9.picks = []; s9.card = null;
+    s9.screen = 'result';
+    s9Save(); c9Render();
+    return;
+  }
+
   if (card.kind === 'echo') {
     const act = card.actions[s9.picks[0]];
     s9.outcome = {
